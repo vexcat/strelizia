@@ -20,7 +20,7 @@ Here's what I'm testing currently:
     - stopBrakeMode
     - feedbackEnabled
 
-Everything is controlled from tabu, rather than in Elliot2 where all configuration and testing is done from the Controller LCD. This is for faster input, better feedback, and most importantly, less cluttered code dealing with UI. There is also nothing on the touchscreen, but it will become Elliot2's auton-switcher when the time comes.
+Everything is controlled from tabu, rather than like in Elliot2 where all configuration and testing is done from the Controller LCD. This is for faster input, better feedback, and most importantly, less cluttered code dealing with UI. There is also nothing on the touchscreen, but it will become Elliot2's auton-switcher when the time comes.
 
 Currently, there is no way for the robot to store any data on the SD card, and there probably won't be a need for it. It is a mostly stateless system, with tests wrapping up in a way that doesn't affect the rest of the program's execution at all. We plan to use PROS' hot/cold linking to make compiling new autonomi fast, and a RasPi wirelessly connected to a PC for wirelessly and safely uploading the autonomi.
 

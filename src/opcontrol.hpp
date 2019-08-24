@@ -1,0 +1,2 @@
+void pauseControl();
+void resumeControl();

@@ -126,7 +126,7 @@ class CurveDriver {
 TrialResults doTest(Trial t) {
   TrialResults res;
   res.trial = t;
-  okapi::MotorGroup out = {1, 2, -3, -4};
+  okapi::MotorGroup out = {11, 12, -13, -14};
   auto driver = CurveDriver(res, out);
   double lastCurveTime = 0;
   double lastRealTime = 0;
@@ -177,7 +177,7 @@ TrialResults doTest(Trial t) {
 
 TrialResults recordMotorMax() {
   uint64_t beginTime = pros::millis();
-  okapi::MotorGroup out  = {1, 2, -3, -4};
+  okapi::MotorGroup out  = {11, 12, -13, -14};
   out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   double startDisp = out.getPosition();
   out.moveVelocity(200);
@@ -206,7 +206,7 @@ void returnToWall(okapi::MotorGroup& mtr) {
 
 void init_follow_test() {
   tabu_reply_on("simple_follower.max_test", [&]() -> json {
-    okapi::MotorGroup out  = {1, 2, -3, -4};
+    okapi::MotorGroup out  = {11, 12, -13, -14};
     pauseControl();
     auto data = recordMotorMax();
     returnToWall(out);
@@ -224,7 +224,7 @@ void init_follow_test() {
     return jarr;
   }, true);
   tabu_reply_on("simple_follower.test", [&](const Message& message) -> json {
-    okapi::MotorGroup out  = {1, 2, -3, -4};
+    okapi::MotorGroup out  = {11, 12, -13, -14};
     pauseControl();
     auto data = doTest({
       message.number("pos"),

@@ -43,12 +43,12 @@ void resumeControl() {
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	okapi::MotorGroup left   { 1,  2};
-	okapi::MotorGroup right  {-3, -4};
-	okapi::MotorGroup intake { 5};
-	okapi::MotorGroup mgl    { 6};
-	okapi::MotorGroup lift   { 7};
-	okapi::MotorGroup claw   { 8};
+	okapi::MotorGroup left   { 11,  12};
+	okapi::MotorGroup right  {-13, -14};
+	okapi::MotorGroup intake { 15};
+	okapi::MotorGroup mgl    { 16};
+	okapi::MotorGroup lift   { 17};
+	okapi::MotorGroup claw   { 18};
 	bool clawActive;
 	bool intakeActive;
 	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);

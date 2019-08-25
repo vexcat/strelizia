@@ -47,7 +47,7 @@ void init_pid_test() {
       std::make_unique<okapi::AverageFilter<2>>()
     );
     //Create motor objects.
-    okapi::MotorGroup out = {1, 2, -3, -4};
+    okapi::MotorGroup out = {11, 12, -13, -14};
     //Drive forward 20 revolutions.
     out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     out.tarePosition();

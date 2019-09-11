@@ -347,7 +347,11 @@ void tabu_handler(const std::string& line) {
         }
         tabu_lock.give();
         for(auto& parent: matching) {
-          parent.second(msg, parent.first);
+          try {
+            parent.second(msg, parent.first);
+          } catch(...) {
+            printf("Caught exception in reply handler.\n");
+          }
         }
       }
     }

@@ -2,18 +2,8 @@
 #include "tabu.hpp"
 #include "entropy.hpp"
 #include "followtest.hpp"
-#include "ultrasonic.hpp"
+#include "sensors.hpp"
 #include "pidtest.hpp"
-
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
 
 std::string bruh() {
 	std::string acc = "";
@@ -39,20 +29,14 @@ void inputTask(void*) {
  */
 void initialize() {
 	try {
+		init_sensors();
 		init_random();
 		init_follow_test();
 		init_pid_test();
-		init_sonic();
-		printf("da - ke - do, suki nano nano daisuki nano nano\n");
 
 		tabu_reply_on("ping", [](const Message& msg) -> json {
 			return "Got ping message with content " + msg.content.dump() + ".";
 		});
-
-		pros::lcd::initialize();
-		pros::lcd::set_text(1, "Hello PROS User!");
-
-		pros::lcd::register_btn1_cb(on_center_button);
 
 		pros::Task maInput(inputTask);
 	} catch(const char* initError) {

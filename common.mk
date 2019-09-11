@@ -29,8 +29,8 @@ AR:=$(ARCHTUPLE)ar
 # using arm-none-eabi-as generates a listing by default. This produces a super verbose output.
 # Using gcc accomplishes the same thing without the extra output
 AS:=$(ARCHTUPLE)gcc
-CC:=ccache $(ARCHTUPLE)gcc
-CXX:=ccache $(ARCHTUPLE)g++
+CC:=$(ARCHTUPLE)gcc
+CXX:=$(ARCHTUPLE)g++
 LD:=$(ARCHTUPLE)g++
 OBJCOPY:=$(ARCHTUPLE)objcopy
 SIZETOOL:=$(ARCHTUPLE)size

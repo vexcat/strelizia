@@ -38,7 +38,7 @@ void initialize() {
 			return "Got ping message with content " + msg.content.dump() + ".";
 		});
 
-		pros::Task maInput(inputTask);
+		pros::Task maInput(inputTask, nullptr, "tabu-input");
 	} catch(const char* initError) {
 		printf("Got an init error: %s\n", initError);
 		fflush(stdout);

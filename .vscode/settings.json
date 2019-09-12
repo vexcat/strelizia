@@ -43,6 +43,13 @@
     "valarray": "cpp",
     "cstring": "cpp",
     "forward_list": "cpp",
-    "numeric": "cpp"
+    "numeric": "cpp",
+    "complex": "cpp",
+    "cstdarg": "cpp",
+    "algorithm": "cpp",
+    "iterator": "cpp",
+    "map": "cpp",
+    "memory_resource": "cpp",
+    "string": "cpp"
   }
 }

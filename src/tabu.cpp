@@ -189,7 +189,7 @@ void runLambdaAsync(T copyableRunnable) {
     T innerCopy = T(*((T*)param));
     delete (T*)param;
     innerCopy();
-  }, copy);
+  }, copy, "runLambdaAsync");
 }
 
 //Storage for topic listeners.

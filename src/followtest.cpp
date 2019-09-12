@@ -3,7 +3,7 @@
 #include "scurve.hpp"
 #include "tabu.hpp"
 #include "opcontrol.hpp"
-#include "ultrasonic.hpp"
+#include "sensors.hpp"
   
 enum TailKind {
   BY_TIME,
@@ -222,7 +222,7 @@ void init_follow_test() {
       });
     }
     return jarr;
-  }, true);
+  });
   tabu_reply_on("simple_follower.test", [&](const Message& message) -> json {
     okapi::MotorGroup out  = {11, 12, -13, -14};
     pauseControl();
@@ -255,5 +255,5 @@ void init_follow_test() {
       {"graphable", jarr},
       {"finalVel", data.finalVelocity}
     };
-  }, true);
+  });
 }

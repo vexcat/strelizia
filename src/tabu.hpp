@@ -44,15 +44,15 @@ Message tabu_send_big(const Message& toReply, json content = json::object());
 void tabu_on(const std::string& topic, std::function<void(const Message&)> listener, bool async = false);
 void tabu_on(const Message& repliedTo, std::function<void(const Message&, const Message&)> listener, bool async = false);
 //Calls previous listener adders, and replies with a json value.
-inline void tabu_reply_on(const std::string& topic, std::function<json(const Message&)> listener, bool async = false) {
+inline void tabu_reply_on(const std::string& topic, std::function<json(const Message&)> listener) {
   tabu_on(topic, [=](const Message& received) {
     tabu_send_big(received, listener(received));
-  }, async);
+  }, true);
 }
-inline void tabu_reply_on(const Message& repliedTo, std::function<json(const Message&, const Message&)> listener, bool async = false) {
+inline void tabu_reply_on(const Message& repliedTo, std::function<json(const Message&, const Message&)> listener) {
   tabu_on(repliedTo, [=](const Message& reply, const Message& original) {
     tabu_send_big(reply, listener(reply, original));
-  }, async);
+  }, true);
 }
 //Argumentless wrappers
 inline void tabu_on(const std::string& topic, std::function<void()> listener, bool async = false) {
@@ -61,15 +61,15 @@ inline void tabu_on(const std::string& topic, std::function<void()> listener, bo
 inline void tabu_on(const Message& repliedTo, std::function<void()> listener, bool async = false) {
   tabu_on(repliedTo, [=](const Message&, const Message& ) { listener(); }, async);
 }
-inline void tabu_reply_on(const std::string& topic, std::function<json()> listener, bool async = false) {
+inline void tabu_reply_on(const std::string& topic, std::function<json()> listener) {
   tabu_on(topic, [=](const Message& received) {
     tabu_send_big(received, listener());
-  }, async);
+  }, true);
 }
-inline void tabu_reply_on(const Message& repliedTo, std::function<json()> listener, bool async = false) {
+inline void tabu_reply_on(const Message& repliedTo, std::function<json()> listener) {
   tabu_on(repliedTo, [=](const Message& reply, const Message& original) {
     tabu_send_big(reply, listener());
-  }, async);
+  }, true);
 }
 
 void tabu_handler(const std::string& line);

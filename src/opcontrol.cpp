@@ -1,6 +1,7 @@
 #include "main.h"
 #include "okapi/api.hpp"
 #include "blue_controller.hpp"
+#include "mtrs.hpp"
 
 //vex::Motor leftMotor1(0);
 //vex::Motor rightMotor2(1);
@@ -43,15 +44,12 @@ void resumeControl() {
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	okapi::MotorGroup left   { 11,  12};
-	okapi::MotorGroup right  {-13, -14};
-	okapi::MotorGroup intake { 15};
-	okapi::MotorGroup mgl    { 16};
-	okapi::MotorGroup lift   { 17};
-	okapi::MotorGroup claw   { 18};
-	bool clawActive;
-	bool intakeActive;
-	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+	pros::ADIPotentiometer pot('H');
+	mtrs.claw.setGearing(okapi::AbstractMotor::gearset::red);
+	bool clawActive = false;
+	bool intakeActive = false;
+	bool clawDirty = false;
+	mtrs.intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	while (true) {
 		if(!opcontrolActive) {
 			opcontrolActiveAck = false;
@@ -62,20 +60,37 @@ void opcontrol() {
 		int ctrl_y = master.get_analog(ANALOG_LEFT_Y);
 		int ctrl_x = master.get_analog(ANALOG_LEFT_X);
 		int ctrl_lift = master.get_analog(ANALOG_RIGHT_Y);
-		lift.moveVoltage(12000 * powered(ctrl_lift, 1));
+		mtrs.lift.moveVoltage(-12000 * powered(ctrl_lift, 1));
 		if(master.get_digital(DIGITAL_UP)) {
-			left.moveVelocity(200);
-			right.moveVelocity(200);
+			mtrs.left.moveVelocity(200);
+			mtrs.right.moveVelocity(200);
 		} else if(master.get_digital(DIGITAL_DOWN)) {
-			left.moveVelocity(-200);
-			right.moveVelocity(-200);
+			mtrs.left.moveVelocity(-200);
+			mtrs.right.moveVelocity(-200);
 		} else {
-			left .moveVoltage(12000 * powered(ctrl_y + ctrl_x, 1.4));
-			right.moveVoltage(12000 * powered(ctrl_y - ctrl_x, 1.4));
+			mtrs.left .moveVoltage(12000 * powered(ctrl_y + ctrl_x, 1.4));
+			mtrs.right.moveVoltage(12000 * powered(ctrl_y - ctrl_x, 1.4));
 		}
-		mgl.controllerSet(master.get_digital(DIGITAL_L1) - master.get_digital(DIGITAL_L2));
-		claw.controllerSet(clawActive);
-		intake.controllerSet(intakeActive);
+		mtrs.mgl.controllerSet(master.get_digital(DIGITAL_L1) - master.get_digital(DIGITAL_L2));
+		if(clawActive) {
+			mtrs.claw.moveVelocity(200);
+			clawDirty = true;
+		} else if (clawDirty){
+			clawDirty = pot.get_value() < 2800;
+			mtrs.claw.moveVoltage(-10000);
+		} else {
+			mtrs.claw.moveVelocity(0);
+		}
+		mtrs.intake.controllerSet(intakeActive);
+		if(master.get_digital_new_press(DIGITAL_R1)) {
+			clawActive = !clawActive;
+		}
+		if(master.get_digital_new_press(DIGITAL_R2)) {
+			intakeActive = !intakeActive;
+		}
+		if(master.get_digital_new_press(DIGITAL_Y)) {
+			printf("pot: %ld\n", pot.get_value());
+		}
 		pros::delay(10);
 	}
 }

@@ -2,6 +2,7 @@
 #include "okapi/api.hpp"
 #include "tabu.hpp"
 #include "opcontrol.hpp"
+#include "mtrs.hpp"
 
 struct PIDDataPoint {
   double time;
@@ -46,8 +47,7 @@ void init_pid_test() {
       okapi::TimeUtilFactory::create(),
       std::make_unique<okapi::AverageFilter<2>>()
     );
-    //Create motor objects.
-    okapi::MotorGroup out = {11, 12, -13, -14};
+    auto& out = mtrs.all;
     //Drive forward 20 revolutions.
     out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     out.tarePosition();

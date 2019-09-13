@@ -238,6 +238,11 @@ void tabu_on(const Message& msg, std::function<void(const Message&, const Messag
   tabu_lock.give();
 }
 
+json helpRegistry = json::object();
+void tabu_help(const std::string& topic, const json& help) {
+  helpRegistry[topic] = help;
+}
+
 //Constructs and sends an EVENT message object.
 Message tabu_send(const std::string& topic, json content) {
   Message msg;
@@ -278,11 +283,22 @@ Message tabu_send_big(const Message& message, json content) {
   return msg;
 }
 
+bool tabu_handler_first_call = true;
+void tabu_init() {
+  tabu_reply_on("help", [&]() -> json {
+    return helpRegistry;
+  });
+}
+
 //Accumulating data for "file-transfer" events.
 std::unordered_map<std::string, json> ongoingTransfers;
 //Parses and handles a line of serial input, calling appropriate listeners.
 void tabu_handler(const std::string& line) {
   try {
+    if(tabu_handler_first_call) {
+      tabu_handler_first_call = false;
+      tabu_init();
+    }
     Message msg(encoding::decode(line));
     if(msg.addressKind == EVENT) {
       if(msg.address == "file-transfer") {

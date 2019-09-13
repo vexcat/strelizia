@@ -76,3 +76,21 @@ void tabu_handler(const std::string& line);
 
 extern pros::Mutex tabu_lock;
 void tabu_say(const std::string& text);
+
+void tabu_help(const std::string& topic, const json& help);
+
+inline json tlabel(const std::string& text) {
+  return {{"kind", "label"}, {"text", text}};
+}
+
+inline json tnum(const std::string& key, const std::string& label) {
+  return {{"kind", "number"}, {"key", key}, {"label", (label == "" ? key : label)}};
+}
+
+inline json tstr(const std::string& key, const std::string& label) {
+  return {{"kind", "string"}, {"key", key}, {"label", (label == "" ? key : label)}};
+}
+
+inline json group(const std::string& label) {
+  return {{"kind", "group"}, {"label", label}};
+}

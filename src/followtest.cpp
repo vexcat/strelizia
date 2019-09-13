@@ -224,6 +224,10 @@ void init_follow_test() {
     }
     return jarr;
   });
+  tabu_help("simple_follower.max_test", {
+    tlabel("Moves motors at full speed for 1sec, records motor statistics."),
+    treplyaction("graph(it)")
+  });
   tabu_reply_on("simple_follower.test", [&](const Message& message) -> json {
     auto& out = mtrs.all;
     pauseControl();
@@ -256,5 +260,13 @@ void init_follow_test() {
       {"graphable", jarr},
       {"finalVel", data.finalVelocity}
     };
+  });
+  tabu_help("simple_follower.test", {
+    tlabel("Motion profiling tester."),
+    tnum("pos"), tnum("vel"), tnum("acc"), tnum("jrk"), tnum("kV"), tnum("kA"),
+    tbool("stopOnFinish"),
+    tnum("stopBrakeMode"),
+    tbool("feedbackEnabled"),
+    treplyaction("graph(it.graphable); say('Final vel was ' + it.finalVel)")
   });
 }

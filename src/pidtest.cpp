@@ -88,4 +88,11 @@ void init_pid_test() {
       {"graphable", jarr}
     };
   });
+  tabu_help("pid_test", {
+    tlabel("Do a PID test"),
+    tnum("kP"), tnum("kI"), tnum("kD"), tnum("kBias"),
+    tnum("ms"),
+    tbool("useVoltage"),
+    treplyaction("graph(it.graphable)")
+  });
 }

@@ -16,7 +16,9 @@ void init_sensors() {
   tabu_reply_on("sonic", [&]() -> json {
     return sonic_dist();
   });
+  tabu_help("sonic", { tlabel("Read the sonic sensor"), treplyaction("say('Sonic: ' + it)") });
   tabu_reply_on("claw", [&]() -> json {
     return claw_pos();
   });
+  tabu_help("claw", { tlabel("Read the claw's potentiometer sensor"), treplyaction("say('Claw: ' + it)") });
 }

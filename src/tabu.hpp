@@ -83,14 +83,22 @@ inline json tlabel(const std::string& text) {
   return {{"kind", "label"}, {"text", text}};
 }
 
-inline json tnum(const std::string& key, const std::string& label) {
+inline json tnum(const std::string& key, const std::string& label = "") {
   return {{"kind", "number"}, {"key", key}, {"label", (label == "" ? key : label)}};
 }
 
-inline json tstr(const std::string& key, const std::string& label) {
+inline json tstr(const std::string& key, const std::string& label = "") {
   return {{"kind", "string"}, {"key", key}, {"label", (label == "" ? key : label)}};
 }
 
-inline json group(const std::string& label) {
+inline json tbool(const std::string& key, const std::string& label = "") {
+  return {{"kind", "bool"}, {"key", key}, {"label", (label == "" ? key : label)}};
+}
+
+inline json tgroup(const std::string& label) {
   return {{"kind", "group"}, {"label", label}};
+}
+
+inline json treplyaction(const std::string& js) {
+  return {{"kind", "reply_action"}, {"do", js}};
 }

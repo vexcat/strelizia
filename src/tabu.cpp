@@ -285,6 +285,7 @@ Message tabu_send_big(const Message& message, json content) {
 
 bool tabu_handler_first_call = true;
 void tabu_init() {
+  //Retrieves an index of all robot tests.
   tabu_reply_on("help", [&]() -> json {
     return helpRegistry;
   });

@@ -29,8 +29,8 @@ void inputTask(void*) {
  */
 void initialize() {
 	try {
-		init_sensors();
 		init_random();
+		init_sensors();
 		init_follow_test();
 		init_pid_test();
 

@@ -2,6 +2,7 @@
 #include "okapi/api.hpp"
 #include "blue_controller.hpp"
 #include "mtrs.hpp"
+#include "sensors.hpp"
 
 //vex::Motor leftMotor1(0);
 //vex::Motor rightMotor2(1);
@@ -44,7 +45,6 @@ void resumeControl() {
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::ADIPotentiometer pot('H');
 	mtrs.claw.setGearing(okapi::AbstractMotor::gearset::red);
 	bool clawActive = false;
 	bool intakeActive = false;
@@ -76,7 +76,7 @@ void opcontrol() {
 			mtrs.claw.moveVelocity(200);
 			clawDirty = true;
 		} else if (clawDirty){
-			clawDirty = pot.get_value() < 2800;
+			clawDirty = claw_pos() < 2800;
 			mtrs.claw.moveVoltage(-10000);
 		} else {
 			mtrs.claw.moveVelocity(0);
@@ -89,7 +89,7 @@ void opcontrol() {
 			intakeActive = !intakeActive;
 		}
 		if(master.get_digital_new_press(DIGITAL_Y)) {
-			printf("pot: %ld\n", pot.get_value());
+			printf("enc: %ld, %ld\n", lenc_pos(), renc_pos());
 		}
 		pros::delay(10);
 	}

@@ -27,11 +27,11 @@ okapi::ADIEncoder& getREnc() {
 
 void init_sensors() {
   //sonic = std::unique_ptr<pros::ADIUltrasonic>(new pros::ADIUltrasonic('A', 'B'));
-  pot = std::unique_ptr(new pros::ADIPotentiometer('H'));
+  pot = std::make_unique<pros::ADIPotentiometer>('H');
   //r: g, f
   //l: e, d
-  lenc = std::unique_ptr(new okapi::ADIEncoder('E', 'F'));
-  renc = std::unique_ptr(new okapi::ADIEncoder('C', 'D'));
+  lenc = std::make_unique<okapi::ADIEncoder>('E', 'F');
+  renc = std::make_unique<okapi::ADIEncoder>('C', 'D');
   tabu_reply_on("sonic", [&]() -> json {
     return sonic_dist();
   });

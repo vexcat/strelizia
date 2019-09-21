@@ -27,6 +27,8 @@ void resumeControl() {
 	while(!opcontrolActiveAck) pros::delay(1);
 }
 
+void autonomous();
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -40,6 +42,7 @@ void resumeControl() {
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+
 //split arcade base
 //R1 - Toggle claw
 //R2 - Toggle intake
@@ -47,7 +50,7 @@ void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 	mtrs->claw.setGearing(okapi::AbstractMotor::gearset::red);
 	bool clawActive = false;
-	bool intakeActive = false;
+	int intakeActive = 0;
 	bool clawDirty = false;
 	bool clawOpened = false;
 	bool liftActiveDown = false;
@@ -88,7 +91,7 @@ void opcontrol() {
 		} else if (clawDirty){
 			clawOpened = false;
 			clawDirty = claw_pos() < 2600;
-			if(ctrl_lift < 63) {
+			if(ctrl_lift > -63) {
 				mtrs->claw.moveVoltage(-7000);
 			} else {
 				mtrs->claw.moveVoltage(0);
@@ -97,7 +100,7 @@ void opcontrol() {
 			clawOpened = false;
 			mtrs->claw.moveVelocity(0);
 		}
-		mtrs->intake.controllerSet(intakeActive);
+		mtrs->intake.controllerSet(master.get_digital(DIGITAL_LEFT) ? -200 : intakeActive);
 		if(master.get_digital_new_press(DIGITAL_R1)) {
 			clawActive = !clawActive;
 			clawOpenTarget = 2100;
@@ -106,17 +109,17 @@ void opcontrol() {
 			clawActive = !clawActive;
 			clawOpenTarget = 1600;
 		}
-		if(ctrl_lift > 63 && !liftActiveDown) {
+		if(ctrl_lift < -63 && !liftActiveDown) {
 			liftActivatedAt = pros::millis();
 			liftActiveDown = true;
-		} else if(ctrl_lift <= 63 && liftActiveDown) {
+		} else if(ctrl_lift >= -63 && liftActiveDown) {
 			liftActiveDown = false;
 		}
 		if(master.get_digital_new_press(DIGITAL_B)) {
 			intakeActive = !intakeActive;
 		}
 		if(master.get_digital_new_press(DIGITAL_Y)) {
-			printf("enc: %ld, %ld\n", lenc_pos(), renc_pos());
+			autonomous();
 		}
 		pros::delay(10);
 	}

@@ -17,7 +17,7 @@ EXTRA_CFLAGS=
 EXTRA_CXXFLAGS=-Winvalid-pch -Wall -pedantic -Wno-psabi -Wno-unused-function -Wno-sign-compare
 
 # Set to 1 to enable hot/cold linking
-USE_PACKAGE:=0
+USE_PACKAGE:=1
 
 # Set this to 1 to add additional rules to compile your project as a PROS library template
 IS_LIBRARY:=0

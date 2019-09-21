@@ -4,6 +4,7 @@
 #include "followtest.hpp"
 #include "sensors.hpp"
 #include "pidtest.hpp"
+#include "mtrs.hpp"
 
 std::string bruh() {
 	std::string acc = "";
@@ -31,6 +32,7 @@ void initialize() {
 	try {
 		init_random();
 		init_sensors();
+		mtrs = std::make_unique<Motors>();
 		init_follow_test();
 		init_pid_test();
 

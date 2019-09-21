@@ -74,13 +74,13 @@ class CurveDriver {
   Trial& trial;
   SCurve curve;
   std::vector<Position>& data;
-  okapi::MotorGroup& output;
+  okapi::AbstractMotor& output;
   uint64_t beginTime;
   double beginReading;
   double lastUsedTime = 0;
   bool stopOnFinish;
   okapi::AbstractMotor::brakeMode stopBrakeMode;
-  CurveDriver(TrialResults& itrial, okapi::MotorGroup& ioutput):
+  CurveDriver(TrialResults& itrial, okapi::AbstractMotor& ioutput):
   res(itrial), trial(res.trial), curve(trial.v, trial.a, trial.j, trial.d),
   data(res.sampledPosition), output(ioutput), stopOnFinish(trial.stopOnFinish), stopBrakeMode(trial.stopBrakeMode) {
     output.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
@@ -127,7 +127,7 @@ class CurveDriver {
 TrialResults doTest(Trial t) {
   TrialResults res;
   res.trial = t;
-  auto& out = mtrs.all;
+  auto& out = mtrs->all;
   auto driver = CurveDriver(res, out);
   double lastCurveTime = 0;
   double lastRealTime = 0;
@@ -178,7 +178,7 @@ TrialResults doTest(Trial t) {
 
 TrialResults recordMotorMax() {
   uint64_t beginTime = pros::millis();
-  auto& out = mtrs.all;
+  auto& out = mtrs->all;
   out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   double startDisp = out.getPosition();
   out.moveVelocity(200);
@@ -196,7 +196,7 @@ TrialResults recordMotorMax() {
   return res;
 }
 
-void returnToWall(okapi::MotorGroup& mtr) {
+void returnToWall(okapi::AbstractMotor& mtr) {
   int32_t s = 0;
   mtr.controllerSet(-1);
   while((s = sonic_dist()) > 520 || s == 0) {
@@ -207,7 +207,7 @@ void returnToWall(okapi::MotorGroup& mtr) {
 
 void init_follow_test() {
   tabu_reply_on("simple_follower.max_test", [&]() -> json {
-    auto& out = mtrs.all;
+    auto& out = mtrs->all;
     pauseControl();
     auto data = recordMotorMax();
     returnToWall(out);
@@ -229,7 +229,7 @@ void init_follow_test() {
     treplyaction("graph(it)")
   });
   tabu_reply_on("simple_follower.test", [&](const Message& message) -> json {
-    auto& out = mtrs.all;
+    auto& out = mtrs->all;
     pauseControl();
     auto data = doTest({
       message.number("pos"),

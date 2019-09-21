@@ -1,2 +1,2 @@
 #include "mtrs.hpp"
-Motors mtrs;
+std::unique_ptr<Motors> mtrs;

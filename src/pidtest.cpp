@@ -47,7 +47,7 @@ void init_pid_test() {
       okapi::TimeUtilFactory::create(),
       std::make_unique<okapi::AverageFilter<2>>()
     );
-    auto& out = mtrs.all;
+    auto& out = mtrs->all;
     //Drive forward 20 revolutions.
     out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     out.tarePosition();

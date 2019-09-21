@@ -45,11 +45,15 @@ void resumeControl() {
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	mtrs.claw.setGearing(okapi::AbstractMotor::gearset::red);
+	mtrs->claw.setGearing(okapi::AbstractMotor::gearset::red);
 	bool clawActive = false;
 	bool intakeActive = false;
 	bool clawDirty = false;
-	mtrs.intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+	bool clawOpened = false;
+	bool liftActiveDown = false;
+	int clawOpenTarget = 2100;
+	mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+	uint32_t liftActivatedAt = pros::millis();
 	while (true) {
 		if(!opcontrolActive) {
 			opcontrolActiveAck = false;
@@ -60,32 +64,55 @@ void opcontrol() {
 		int ctrl_y = master.get_analog(ANALOG_LEFT_Y);
 		int ctrl_x = master.get_analog(ANALOG_LEFT_X);
 		int ctrl_lift = master.get_analog(ANALOG_RIGHT_Y);
-		mtrs.lift.moveVoltage(-12000 * powered(ctrl_lift, 1));
+		mtrs->lift.moveVoltage(-12000 * powered(ctrl_lift, 1));
 		if(master.get_digital(DIGITAL_UP)) {
-			mtrs.left.moveVelocity(200);
-			mtrs.right.moveVelocity(200);
+			mtrs->left.moveVelocity(200);
+			mtrs->right.moveVelocity(200);
 		} else if(master.get_digital(DIGITAL_DOWN)) {
-			mtrs.left.moveVelocity(-200);
-			mtrs.right.moveVelocity(-200);
+			mtrs->left.moveVelocity(-200);
+			mtrs->right.moveVelocity(-200);
 		} else {
-			mtrs.left .moveVoltage(12000 * powered(ctrl_y + ctrl_x, 1.4));
-			mtrs.right.moveVoltage(12000 * powered(ctrl_y - ctrl_x, 1.4));
+			mtrs->left .moveVoltage(12000 * powered(ctrl_y + ctrl_x, 1.4));
+			mtrs->right.moveVoltage(12000 * powered(ctrl_y - ctrl_x, 1.4));
 		}
-		mtrs.mgl.controllerSet(master.get_digital(DIGITAL_L1) - master.get_digital(DIGITAL_L2));
+		mtrs->mgl.controllerSet(master.get_digital(DIGITAL_L1) - master.get_digital(DIGITAL_L2));
+		mtrs->claw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		if(clawActive) {
-			mtrs.claw.moveVelocity(200);
+			if(!clawOpened) {
+				mtrs->claw.moveVelocity(200);
+				clawOpened = claw_pos() < clawOpenTarget;
+			} else {
+				mtrs->claw.moveVelocity(0);
+			}
 			clawDirty = true;
 		} else if (clawDirty){
-			clawDirty = claw_pos() < 2800;
-			mtrs.claw.moveVoltage(-10000);
+			clawOpened = false;
+			clawDirty = claw_pos() < 2600;
+			if(ctrl_lift < 63) {
+				mtrs->claw.moveVoltage(-7000);
+			} else {
+				mtrs->claw.moveVoltage(0);
+			}
 		} else {
-			mtrs.claw.moveVelocity(0);
+			clawOpened = false;
+			mtrs->claw.moveVelocity(0);
 		}
-		mtrs.intake.controllerSet(intakeActive);
+		mtrs->intake.controllerSet(intakeActive);
 		if(master.get_digital_new_press(DIGITAL_R1)) {
 			clawActive = !clawActive;
+			clawOpenTarget = 2100;
 		}
 		if(master.get_digital_new_press(DIGITAL_R2)) {
+			clawActive = !clawActive;
+			clawOpenTarget = 1600;
+		}
+		if(ctrl_lift > 63 && !liftActiveDown) {
+			liftActivatedAt = pros::millis();
+			liftActiveDown = true;
+		} else if(ctrl_lift <= 63 && liftActiveDown) {
+			liftActiveDown = false;
+		}
+		if(master.get_digital_new_press(DIGITAL_B)) {
 			intakeActive = !intakeActive;
 		}
 		if(master.get_digital_new_press(DIGITAL_Y)) {

@@ -31,6 +31,16 @@ class EncoderAverage: public okapi::ContinuousRotarySensor {
 	}
 };
 
+class ReversedEncoder: public okapi::ContinuousRotarySensor {
+	std::shared_ptr<okapi::ContinuousRotarySensor> encoder;
+	public:
+	ReversedEncoder(std::shared_ptr<okapi::ContinuousRotarySensor> sensor):
+	encoder(std::move(sensor)) {}
+	double get() const override { return -encoder->get(); }
+	double controllerGet() override { return get(); }
+	std::int32_t reset() override { return encoder->reset(); }
+};
+
 class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMotor {
 	okapi::AbstractMotor& captive;
 	std::shared_ptr<okapi::ContinuousRotarySensor> realEnc;
@@ -42,6 +52,7 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 	std::shared_ptr<okapi::ContinuousRotarySensor> ienc):
 	captive(icaptive), realEnc(ienc) {
 		icaptive.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		icaptive.setGearing(okapi::AbstractMotor::gearset::green);
 		units = 1.0 / 360.0;
 	}
 
@@ -166,6 +177,7 @@ struct Motors {
 	okapi::MotorGroup rawleft  {-11,  12};
 	okapi::MotorGroup rawright { 13, -14};
 	okapi::MotorGroup rawall   {-11,  12,  13, -14};
+	okapi::MotorGroup rawturn  {-11,  12, -13,  14};
 	okapi::MotorGroup intake   { 15};
 	okapi::MotorGroup mgl      { 16};
 	okapi::MotorGroup lift     { 17};
@@ -173,12 +185,17 @@ struct Motors {
 	ExtraSpecialMotorWithExternalSensorsAsEncoders left;
 	ExtraSpecialMotorWithExternalSensorsAsEncoders right;
 	ExtraSpecialMotorWithExternalSensorsAsEncoders all;
+	ExtraSpecialMotorWithExternalSensorsAsEncoders turn;
 	Motors():
 	left {rawleft,  std::make_shared<okapi::ADIEncoder>(getLEnc())},
 	right{rawright, std::make_shared<okapi::ADIEncoder>(getREnc())},
 	all  {rawall,   std::make_shared<EncoderAverage>(std::initializer_list<std::shared_ptr<okapi::ContinuousRotarySensor>>({
 		std::make_shared<okapi::ADIEncoder>(getLEnc()),
 		std::make_shared<okapi::ADIEncoder>(getREnc())
+	}))},
+	turn {rawturn,   std::make_shared<EncoderAverage>(std::initializer_list<std::shared_ptr<okapi::ContinuousRotarySensor>>({
+		std::make_shared<okapi::ADIEncoder>(getLEnc()),
+		std::make_shared<ReversedEncoder>(std::make_shared<okapi::ADIEncoder>(getREnc()))
 	}))}
 	{}
 };

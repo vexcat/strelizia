@@ -5,6 +5,7 @@
 #include "opcontrol.hpp"
 #include "sensors.hpp"
 #include "mtrs.hpp"
+#include "automation_util.hpp"
   
 enum TailKind {
   BY_TIME,
@@ -196,21 +197,12 @@ TrialResults recordMotorMax() {
   return res;
 }
 
-void returnToWall(okapi::AbstractMotor& mtr) {
-  int32_t s = 0;
-  mtr.controllerSet(-1);
-  while((s = sonic_dist()) > 520 || s == 0) {
-    pros::delay(10);
-  }
-  mtr.controllerSet(0);
-}
-
 void init_follow_test() {
   tabu_reply_on("simple_follower.max_test", [&]() -> json {
     auto& out = mtrs->all;
     pauseControl();
     auto data = recordMotorMax();
-    returnToWall(out);
+    returnToWall();
     resumeControl();
     auto jarr = json::array();
     for(auto& entry: data.sampledPosition) {
@@ -244,7 +236,7 @@ void init_follow_test() {
       (okapi::AbstractMotor::brakeMode)message.integer("stopBrakeMode"),
       message.boolean("feedbackEnabled")
     });
-    returnToWall(out);
+    returnToWall();
     resumeControl();
     auto jarr = json::array();
     for(auto& entry: data.sampledPosition) {

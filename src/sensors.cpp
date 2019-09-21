@@ -30,8 +30,8 @@ void init_sensors() {
   pot = std::make_unique<pros::ADIPotentiometer>('H');
   //r: g, f
   //l: e, d
-  lenc = std::make_unique<okapi::ADIEncoder>('E', 'F');
-  renc = std::make_unique<okapi::ADIEncoder>('C', 'D');
+  lenc = std::make_unique<okapi::ADIEncoder>('C', 'D');
+  renc = std::make_unique<okapi::ADIEncoder>('E', 'F');
   tabu_reply_on("sonic", [&]() -> json {
     return sonic_dist();
   });

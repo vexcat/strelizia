@@ -3,6 +3,7 @@
 #include "tabu.hpp"
 #include "opcontrol.hpp"
 #include "mtrs.hpp"
+#include "automation_util.hpp"
 
 struct PIDDataPoint {
   double time;
@@ -36,6 +37,8 @@ class TestingController: public okapi::IterativePosPIDController {
 
 void init_pid_test() {
   tabu_reply_on("pid_test", [&](const Message& msg) -> json {
+    puts(msg.content.dump().c_str());
+    printf("hi\n");
     pauseControl();
     std::vector<PIDDataPoint> collectedData;
     //Create PID controller from parameters in msg.
@@ -45,13 +48,13 @@ void init_pid_test() {
       msg.number("kD"),
       msg.number("kBias"),
       okapi::TimeUtilFactory::create(),
-      std::make_unique<okapi::AverageFilter<2>>()
+      std::make_unique<okapi::AverageFilter<5>>()
     );
-    auto& out = mtrs->all;
+    auto& out = msg.boolean("turn") ? mtrs->turn : mtrs->all;
     //Drive forward 20 revolutions.
     out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     out.tarePosition();
-    controller.setTarget(20);
+    controller.setTarget(msg.number("revs"));
     auto startTime = pros::millis();
     auto endTime = pros::millis() + msg.integer("ms");
     bool useVoltage = msg.boolean("useVoltage");
@@ -71,6 +74,9 @@ void init_pid_test() {
         out.moveVelocity(step * (int)out.getGearing());
       }
       pros::delay(10);
+    }
+    if(!msg.boolean("turn")) {
+      returnToWall();
     }
     resumeControl();
     auto jarr = json::array();
@@ -93,6 +99,8 @@ void init_pid_test() {
     tnum("kP"), tnum("kI"), tnum("kD"), tnum("kBias"),
     tnum("ms"),
     tbool("useVoltage"),
+    tbool("turn"),
+    tnum("revs"),
     treplyaction("graph(it.graphable)")
   });
 }

@@ -95,10 +95,6 @@ inline json tbool(const std::string& key, const std::string& label = "") {
   return {{"kind", "bool"}, {"key", key}, {"label", (label == "" ? key : label)}};
 }
 
-inline json tgroup(const std::string& label) {
-  return {{"kind", "group"}, {"label", label}};
-}
-
 inline json treplyaction(const std::string& js) {
   return {{"kind", "reply_action"}, {"do", js}};
 }

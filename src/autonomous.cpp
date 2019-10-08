@@ -7,7 +7,6 @@ void doPID(double revs, int time, bool shouldTurn, okapi::IterativePosPIDControl
   out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   out.tarePosition();
   ctrl.setTarget(revs);
-  auto startTime = pros::millis();
   auto endTime = pros::millis() + time;
   while(pros::millis() < endTime) {
     double step = ctrl.step(out.getPosition());
@@ -40,31 +39,8 @@ void turnPID(double revs, int time) {
   ), mtrs->turn);
 }
 
-bool amBlue = true;
+bool amBlue = false;
 
 void autonomous() {
-  double startTime = pros::millis();
-  straightPID(-2.5, 1500);
-  turnPID(amBlue ? -1.5 : 1.5, 1200);
-  mtrs->all.moveVelocity(0);
-  mtrs->lift.moveVelocity(-200);
-  pros::delay(1800);
-  mtrs->lift.moveVelocity(0);
-  pros::delay(700);
-  mtrs->lift.moveVelocity(200);
-  pros::delay(1600);
-  mtrs->lift.moveVelocity(0);
-  turnPID(amBlue ? -1.46 : 1.46, 1200);
-  /*
-  straightPID(-3.8, 2000);
-   */
-  mtrs->all.moveVelocity(-200);
-  pros::delay(1200);
-  amBlue ? mtrs->left.moveVelocity(50) : mtrs->right.moveVelocity(50);
-  pros::delay(800);
-  mtrs->turn.moveVelocity(amBlue ? 200 : -200);
-  pros::delay(3000);
-  mtrs->all.moveVelocity(0);
-  double endTime = pros::millis();
-  printf("Auton finished in %fs.\n", (endTime - startTime) / 1000.0);
+  
 }

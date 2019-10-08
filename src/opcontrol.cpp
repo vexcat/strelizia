@@ -48,13 +48,6 @@ void autonomous();
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	mtrs->claw.setGearing(okapi::AbstractMotor::gearset::red);
-	bool clawActive = false;
-	int intakeActive = 0;
-	bool clawDirty = false;
-	bool clawOpened = false;
-	bool liftActiveDown = false;
-	int clawOpenTarget = 2100;
 	mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	uint32_t liftActivatedAt = pros::millis();
 	while (true) {
@@ -63,64 +56,16 @@ void opcontrol() {
 			pros::delay(10);
 			continue;
 		}
-		opcontrolActiveAck = true;
-		int ctrl_y = master.get_analog(ANALOG_LEFT_Y);
-		int ctrl_x = master.get_analog(ANALOG_LEFT_X);
-		int ctrl_lift = master.get_analog(ANALOG_RIGHT_Y);
-		mtrs->lift.moveVoltage(-12000 * powered(ctrl_lift, 1));
-		if(master.get_digital(DIGITAL_UP)) {
-			mtrs->left.moveVelocity(200);
-			mtrs->right.moveVelocity(200);
-		} else if(master.get_digital(DIGITAL_DOWN)) {
-			mtrs->left.moveVelocity(-200);
-			mtrs->right.moveVelocity(-200);
-		} else {
-			mtrs->left .moveVoltage(12000 * powered(ctrl_y + ctrl_x, 1.4));
-			mtrs->right.moveVoltage(12000 * powered(ctrl_y - ctrl_x, 1.4));
-		}
-		mtrs->mgl.controllerSet(master.get_digital(DIGITAL_L1) - master.get_digital(DIGITAL_L2));
-		mtrs->claw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
-		if(clawActive) {
-			if(!clawOpened) {
-				mtrs->claw.moveVelocity(200);
-				clawOpened = claw_pos() < clawOpenTarget;
-			} else {
-				mtrs->claw.moveVelocity(0);
-			}
-			clawDirty = true;
-		} else if (clawDirty){
-			clawOpened = false;
-			clawDirty = claw_pos() < 2600;
-			if(ctrl_lift > -63) {
-				mtrs->claw.moveVoltage(-7000);
-			} else {
-				mtrs->claw.moveVoltage(0);
-			}
-		} else {
-			clawOpened = false;
-			mtrs->claw.moveVelocity(0);
-		}
-		mtrs->intake.controllerSet(master.get_digital(DIGITAL_LEFT) ? -200 : intakeActive);
-		if(master.get_digital_new_press(DIGITAL_R1)) {
-			clawActive = !clawActive;
-			clawOpenTarget = 2100;
-		}
-		if(master.get_digital_new_press(DIGITAL_R2)) {
-			clawActive = !clawActive;
-			clawOpenTarget = 1600;
-		}
-		if(ctrl_lift < -63 && !liftActiveDown) {
-			liftActivatedAt = pros::millis();
-			liftActiveDown = true;
-		} else if(ctrl_lift >= -63 && liftActiveDown) {
-			liftActiveDown = false;
-		}
-		if(master.get_digital_new_press(DIGITAL_B)) {
-			intakeActive = !intakeActive;
-		}
-		if(master.get_digital_new_press(DIGITAL_Y)) {
-			autonomous();
-		}
+		double y_ctrl  = master.get_analog(ANALOG_LEFT_Y) / 127.0;
+		double x_ctrl = master.get_analog(ANALOG_LEFT_X) / 127.0;
+		mtrs->lift.controllerSet(-master.get_analog(ANALOG_RIGHT_Y) / 127.0);
+
+		mtrs->left .controllerSet(y_ctrl + x_ctrl);
+		mtrs->right.controllerSet(y_ctrl - x_ctrl);
+
+		mtrs->tilter.controllerSet(master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1));
+		mtrs->intake.controllerSet(master.get_digital(DIGITAL_R2) - (master.get_digital(DIGITAL_L2) ? 0.75 : 1));
+
 		pros::delay(10);
 	}
 }

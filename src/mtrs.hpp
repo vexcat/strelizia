@@ -174,30 +174,17 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 };
 
 struct Motors {
-	okapi::MotorGroup rawleft  {-11,  12};
-	okapi::MotorGroup rawright { 13, -14};
-	okapi::MotorGroup rawall   {-11,  12,  13, -14};
-	okapi::MotorGroup rawturn  {-11,  12, -13,  14};
-	okapi::MotorGroup intake   { 15};
-	okapi::MotorGroup mgl      { 16};
+	okapi::MotorGroup left  { 11,  13};
+	okapi::MotorGroup right {-15, -16};
+	okapi::MotorGroup all   { 11,  13, -15, -16};
+	okapi::MotorGroup turn  { 11,  13,  15,  16};
+	okapi::MotorGroup intake   { 19, 10};
+	okapi::MotorGroup tilter   { 18};
 	okapi::MotorGroup lift     { 17};
-	okapi::MotorGroup claw     { 18};
-	ExtraSpecialMotorWithExternalSensorsAsEncoders left;
-	ExtraSpecialMotorWithExternalSensorsAsEncoders right;
-	ExtraSpecialMotorWithExternalSensorsAsEncoders all;
-	ExtraSpecialMotorWithExternalSensorsAsEncoders turn;
-	Motors():
-	left {rawleft,  std::make_shared<okapi::ADIEncoder>(getLEnc())},
-	right{rawright, std::make_shared<okapi::ADIEncoder>(getREnc())},
-	all  {rawall,   std::make_shared<EncoderAverage>(std::initializer_list<std::shared_ptr<okapi::ContinuousRotarySensor>>({
-		std::make_shared<okapi::ADIEncoder>(getLEnc()),
-		std::make_shared<okapi::ADIEncoder>(getREnc())
-	}))},
-	turn {rawturn,   std::make_shared<EncoderAverage>(std::initializer_list<std::shared_ptr<okapi::ContinuousRotarySensor>>({
-		std::make_shared<okapi::ADIEncoder>(getLEnc()),
-		std::make_shared<ReversedEncoder>(std::make_shared<okapi::ADIEncoder>(getREnc()))
-	}))}
-	{}
+	Motors() {
+		tilter.setGearing(okapi::AbstractMotor::gearset::red);
+		lift.setGearing(okapi::AbstractMotor::gearset::red);
+	}
 };
 
 extern std::unique_ptr<Motors> mtrs;

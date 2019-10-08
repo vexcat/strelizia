@@ -50,6 +50,7 @@ void init_pid_test() {
       okapi::TimeUtilFactory::create(),
       std::make_unique<okapi::AverageFilter<5>>()
     );
+    controller.setOutputLimits(msg.number("max"), -msg.number("max"));
     auto& out = msg.boolean("turn") ? mtrs->turn : mtrs->all;
     //Drive forward 20 revolutions.
     out.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
@@ -97,6 +98,7 @@ void init_pid_test() {
   tabu_help("pid_test", {
     tlabel("Do a PID test"),
     tnum("kP"), tnum("kI"), tnum("kD"), tnum("kBias"),
+    tnum("max"),
     tnum("ms"),
     tbool("useVoltage"),
     tbool("turn"),

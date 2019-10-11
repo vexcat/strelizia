@@ -60,11 +60,11 @@ void opcontrol() {
 		double x_ctrl = master.get_analog(ANALOG_LEFT_X) / 127.0;
 		mtrs->lift.controllerSet(-master.get_analog(ANALOG_RIGHT_Y) / 127.0);
 
-		mtrs->left .controllerSet(y_ctrl + x_ctrl);
-		mtrs->right.controllerSet(y_ctrl - x_ctrl);
+		mtrs->left .moveVelocity(200 * (y_ctrl + x_ctrl));
+		mtrs->right.moveVelocity(200 * (y_ctrl - x_ctrl));
 
-		mtrs->tilter.controllerSet(master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1));
-		mtrs->intake.controllerSet(master.get_digital(DIGITAL_R2) - (master.get_digital(DIGITAL_L2) ? 0.75 : 1));
+		mtrs->tilter.moveVelocity(200 * (master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1)));
+		mtrs->intake.moveVelocity(200 * (master.get_digital(DIGITAL_R2) - (master.get_digital(DIGITAL_L2) ? 0.75 : 0)));
 
 		pros::delay(10);
 	}

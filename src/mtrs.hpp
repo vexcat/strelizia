@@ -178,7 +178,7 @@ struct Motors {
 	okapi::MotorGroup right {-15, -16};
 	okapi::MotorGroup all   { 11,  13, -15, -16};
 	okapi::MotorGroup turn  { 11,  13,  15,  16};
-	okapi::MotorGroup intake   { 19, 10};
+	okapi::MotorGroup intake   { 19, -9};
 	okapi::MotorGroup tilter   { 18};
 	okapi::MotorGroup lift     { 17};
 	Motors() {

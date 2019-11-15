@@ -41,6 +41,3 @@ Pretty neat, right? Here, the code sets a listener for the "sonic" event, saying
 
 ## Documentation
 Currently, this project has no documentation, sorry about that! It's planned for the future, especially for Tabu.
-
-## Earlier Versions
-There are none! Unfortunately, strelizia was created with the intention of being a "temporary" project. "Nothing is more permanent than a temporary solution." - said some Russian guy.

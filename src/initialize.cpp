@@ -28,7 +28,7 @@ void inputTask(void*) {
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize() {
+void r_initialize() {
 	try {
 		init_random();
 		init_sensors();
@@ -38,6 +38,10 @@ void initialize() {
 
 		tabu_reply_on("ping", [](const Message& msg) -> json {
 			return "Got ping message with content " + msg.content.dump() + ".";
+		});
+		tabu_help("ping", {
+			tstr("text"),
+			treplyaction("say(it)")
 		});
 
 		pros::Task maInput(inputTask, nullptr, "tabu-input");

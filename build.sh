@@ -1,1 +1,1 @@
-make clean && time make -j5
+make clean && make -j5

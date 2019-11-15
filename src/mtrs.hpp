@@ -174,16 +174,16 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 };
 
 struct Motors {
-	okapi::MotorGroup left  { 11,  13};
-	okapi::MotorGroup right {-15, -16};
-	okapi::MotorGroup all   { 11,  13, -15, -16};
-	okapi::MotorGroup turn  { 11,  13,  15,  16};
-	okapi::MotorGroup intake   { 19, -9};
-	okapi::MotorGroup tilter   { 18};
-	okapi::MotorGroup lift     { 17};
+	okapi::MotorGroup left  {  7,   9};
+	okapi::MotorGroup right {- 1, - 2}; //1
+	okapi::MotorGroup all   {  7,   9, - 1, - 2};
+	okapi::MotorGroup turn  {  7,   9,   1,   2};
+	okapi::MotorGroup intake   { 20, -11};
+	okapi::MotorGroup tilter   {  3};
+	okapi::MotorGroup lift     {  8};
 	Motors() {
 		tilter.setGearing(okapi::AbstractMotor::gearset::red);
-		lift.setGearing(okapi::AbstractMotor::gearset::red);
+		lift.setGearing(okapi::AbstractMotor::gearset::green);
 	}
 };
 

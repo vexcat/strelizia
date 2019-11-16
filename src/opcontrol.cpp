@@ -97,9 +97,7 @@ void opcontrol() {
 		mtrs->left .controllerSet(y_ctrl + x_ctrl);
 		mtrs->right.controllerSet(y_ctrl - x_ctrl);
 
-		//If the arms are far away, intake slower.
-		double intakeMultiplier = int(std::abs(mtrs->lift.getPosition() - initialLiftPos) > 0.75) * 0.2;
-		mtrs->intake.controllerSet((master.get_digital(DIGITAL_R2) ? 1 : 0) - master.get_digital(DIGITAL_L2));
+		mtrs->intake.controllerSet(master.get_digital(DIGITAL_R2) - master.get_digital(DIGITAL_L2) - master.get_digital(DIGITAL_B) * 0.4);
 
 		pros::delay(10);
 	}

@@ -9,7 +9,7 @@ void init_sensors() {
     return mtrs->all.getPosition();
   });
   tabu_help("enc_base", json::array({ treplyaction("say(it)") }));
-  tabu_reply_on("tilter_enc", []() -> json {
+  tabu_reply_on("enc_tilter", []() -> json {
     return mtrs->tilter.getPosition();
   });
   tabu_help("enc_tilter", json::array({ treplyaction("say(it)") }));

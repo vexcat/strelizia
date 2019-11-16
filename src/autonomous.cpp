@@ -142,12 +142,6 @@ void autonomous() {
   auto startTime = pros::millis();
   if(which == 0) {
     parallel::waitForAll({[&]{
-      /*
-      mtrs->all.controllerSet(-1);
-      pros::delay(300);
-      mtrs->all.controllerSet(0);
-      pros::delay(500);
-      */
       straightNormal(0.8, 2.5, 1400);
       straightNormal(1, -2, 1300);
     }, [&] {
@@ -192,5 +186,5 @@ void autonomous() {
 void r_initialize();
 void initialize() {
   install_hawt_atom("auto", (void*)autonomous);
-  r_initialize(); 
+  r_initialize();
 }

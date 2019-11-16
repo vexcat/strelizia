@@ -3,6 +3,7 @@
 #include "blue_controller.hpp"
 #include "mtrs.hpp"
 #include "sensors.hpp"
+#include "atoms.hpp"
 
 double powered(int ctrl_power, double exp) {
 	if(ctrl_power == 0) return 0;
@@ -47,10 +48,10 @@ void opcontrol() {
 	uint32_t liftActivatedAt = pros::millis();
 	mtrs->lift.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 	mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
-	double initialTilterPos = mtrs->tilter.getPosition();
-	double initialLiftPos = mtrs->lift.getPosition();
 	mtrs->lift.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	double initialTilterPos = mtrs->tilter.getPosition();
+	double initialLiftPos = mtrs->lift.getPosition();
 	int automaticTiltActivationTime = -1;
 	bool tilterInUse = false;
 	bool liftInUse = false;
@@ -92,6 +93,10 @@ void opcontrol() {
 		if(master.get_digital_new_press(DIGITAL_X)) {
 			mtrs->tilter.moveAbsolute(initialTilterPos, 200);
 			tilterInUse = true;
+		}
+
+		if(master.get_digital_new_press(DIGITAL_UP)) {
+			((void (*)())retrieve_hawt_atom("auto"))();
 		}
 
 		mtrs->left .controllerSet(y_ctrl + x_ctrl);

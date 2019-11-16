@@ -2,6 +2,7 @@
 #include "okapi/api.hpp"
 #include "mtrs.hpp"
 #include "automation_util.hpp"
+#include "atoms.hpp"
 
 static void doPID(double max, double revs, int time, bool shouldTurn, okapi::IterativePosPIDController ctrl, okapi::AbstractMotor& out) {
   //Drive forward 20 revolutions.
@@ -149,6 +150,6 @@ void autonomous() {
 
 void r_initialize();
 void initialize() {
-  r_initialize();
-  //autonomous(); 
+  install_hawt_atom("auto", (void*)autonomous);
+  r_initialize(); 
 }

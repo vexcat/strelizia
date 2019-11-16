@@ -22,6 +22,18 @@ void inputTask(void*) {
 	}
 }
 
+//These hawt functions exist to keep track of the locations of the things
+//in hot memory at runtime. Using any hot symbols at compile-time will
+//"melt" the cold section so to say, making it have to be reuploaded to keep
+//hot references working and defying the point of it. 
+std::unordered_map<std::string, void*> hawt_atoms;
+void install_hawt_atom(const std::string& name, void* what) {
+	hawt_atoms[name] = what;
+}
+void* retrieve_hawt_atom(const std::string& name) {
+	return hawt_atoms[name];
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *

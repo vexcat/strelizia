@@ -75,7 +75,7 @@ static void turnHeavy(double max, double revs, int time) {
 }
 
 static bool amBlue = false;
-int which = 0;
+int which = 2;
 
 //Runs a callable and copyable type, T, as a pros::Task.
 //This really should be in its own file.
@@ -141,6 +141,7 @@ void autonomous() {
   mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   auto startTime = pros::millis();
   if(which == 0) {
+    goto skip;
     parallel::waitForAll({[&]{
       straightNormal(0.8, 2.5, 1400);
       straightNormal(1, -2, 1300);
@@ -150,31 +151,65 @@ void autonomous() {
       pros::delay(2000);
       mtrs->intake.controllerSet(0);
     }});
-    turnHeavy(0.6, 0.68, 950);
+    turnHeavy(0.6, amBlue ? -0.68 : 0.68, 950);
     straightHeavy(1, 2, 1200);
-    turnHeavy(0.6, -0.67, 950);
+    turnHeavy(0.6, amBlue ? 0.67 : -0.67, 950);
+skip:
     mtrs->intake.controllerSet(1);
-    straightHeavy(0.5, 2.9, 2000);
+    straightHeavy(0.4, 3.5, 3000);
     parallel::waitForAll({[&]{
-      straightHeavy(0.5, -1.6, 1400);
+      straightHeavy(0.4, -1.64, 2000);
     }, [&]{
       pros::delay(800);
       mtrs->intake.controllerSet(0);
     }});
-    turnHeavy(0.5, 1.3, 700);
+    turnHeavy(0.3, amBlue ? -0.98 : 1, 2000);
     parallel::waitForAll({[&]{
-      straightHeavy(1, 1.7, 1000);
+      straightHeavy(1, 1.25, 2000);
       mtrs->tilter.moveRelative(3.98, 200);
       pros::delay(3400);
+      straightHeavy(1, 0.2, 800);
     }, [&]{
       pros::delay(900);
       mtrs->intake.moveVoltage(-4000);
     }});
     //YEET
     straightHeavy(0.6, -1, 1000);
+  } else if(which == 1) {
+    auto oldTilt = mtrs->tilter.getPosition();
+    mtrs->intake.controllerSet(1);
+    straightHeavy(0.2, 3.5, 5000);
+    parallel::waitForAll({[&]{
+      straightHeavy(0.4, -1.64, 2000);
+    }, [&]{
+      pros::delay(800);
+      mtrs->intake.controllerSet(0);
+    }});
+    turnHeavy(0.5, amBlue ? -0.98 : 0.96, 2000);
+    parallel::waitForAll({[&]{
+      straightHeavy(1, 1.1, 2000);
+      mtrs->tilter.moveRelative(3.98, 200);
+      pros::delay(3400);
+      straightHeavy(1, 0.1, 800);
+    }, [&]{
+      pros::delay(900);
+      mtrs->intake.moveVoltage(-4000);
+    }});
+    //YEET
+    parallel::waitForAll({[&]{
+      straightHeavy(0.6, -2, 2000);
+    }, [&]{
+      pros::delay(200);
+      mtrs->intake.controllerSet(0);
+    }});
+    mtrs->tilter.moveAbsolute(oldTilt, 200);
+    turnHeavy(0.6, -1, 2000);
+  } else if(which == 2) {
+    straightNormal(0.6, -1, 1000);
+    straightNormal(0.6, 0.5, 1000);
   }
   printf("Finished in %lums.\n", pros::millis() - startTime);
-  auto remainderTime = 15000 + (int)startTime - (int)pros::millis();
+  auto remainderTime = 60000 + (int)startTime - (int)pros::millis();
   if(remainderTime > 0) pros::delay(remainderTime);
   printf("Time's up!\n");
   mtrs->all.moveVoltage(0);

@@ -50,8 +50,8 @@ void opcontrol() {
 	mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 	mtrs->lift.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	double initialTilterPos = mtrs->tilter.getPosition();
-	double initialLiftPos = mtrs->lift.getPosition();
+	double initialTilterPos = 0;
+	double initialLiftPos = 0;
 	int automaticTiltActivationTime = -1;
 	bool tilterInUse = false;
 	bool liftInUse = false;
@@ -72,25 +72,12 @@ void opcontrol() {
 		
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
 		if(!tilterInUse || tiltControl) {
-			mtrs->tilter.controllerSet(tiltControl);
+			mtrs->tilter.controllerSet(((mtrs->tilter.getPosition() > 2.67 && tiltControl < 0) ? 0.7 : 1.0) * tiltControl);
 			tilterInUse = false;
-		}
-
-		//Arms down, Tray in
-		if(master.get_digital_new_press(DIGITAL_Y)) {
-			mtrs->lift.moveAbsolute(initialLiftPos, 200);
-			liftInUse = true;
-			mtrs->left.controllerSet(0);
-			mtrs->right.controllerSet(0);
-			mtrs->tilter.controllerSet(0);
-			mtrs->intake.controllerSet(0);
-			pros::delay(400);
-			mtrs->tilter.moveAbsolute(initialTilterPos, 200);
-			tilterInUse = true;
 		}
 		
 		//Tray in
-		if(master.get_digital_new_press(DIGITAL_X)) {
+		if(master.get_digital_new_press(DIGITAL_Y)) {
 			mtrs->tilter.moveAbsolute(initialTilterPos, 200);
 			tilterInUse = true;
 		}
@@ -99,10 +86,15 @@ void opcontrol() {
 			((void (*)())retrieve_hawt_atom("auto"))();
 		}
 
+		if(master.get_digital_new_press(DIGITAL_RIGHT)) {
+      mtrs->tilter.moveAbsolute(3.98, 200);
+			tilterInUse = true;
+		}
+
 		mtrs->left .controllerSet(y_ctrl + x_ctrl);
 		mtrs->right.controllerSet(y_ctrl - x_ctrl);
 
-		mtrs->intake.controllerSet(master.get_digital(DIGITAL_R2) - master.get_digital(DIGITAL_L2) - master.get_digital(DIGITAL_B) * 0.4);
+		mtrs->intake.controllerSet(0.80 * (master.get_digital(DIGITAL_R2) - master.get_digital(DIGITAL_L2)));
 
 		pros::delay(10);
 	}

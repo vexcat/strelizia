@@ -5,19 +5,12 @@
 #include "sensors.hpp"
 #include "pidtest.hpp"
 #include "mtrs.hpp"
-
-std::string bruh() {
-	std::string acc = "";
-	int c = 0;
-	while((c = getchar()) != -1  && c != '\n') {
-		acc += c;
-	}
-	return acc;
-}
+#include "display.hpp"
+#include "superhot_compat.hpp"
 
 void inputTask(void*) {
 	while(true) {
-		auto line = bruh();
+		auto line = SuperHot::recv_line();
 		tabu_handler(line);
 	}
 }
@@ -43,13 +36,17 @@ void* retrieve_hawt_atom(const std::string& name) {
 void r_initialize() {
 	try {
 		init_random();
+		pros::delay(200);
+		//Causes memory permission error due to buggy LVGL multithreading.
+		//Only when plugged into field.
+		//init_display();
 		init_sensors();
 		mtrs = std::make_unique<Motors>();
 		init_follow_test();
 		init_pid_test();
 
 		tabu_reply_on("ping", [](const Message& msg) -> json {
-			return "Got ping message with content " + msg.content.dump() + ".";
+			return "Got ping message with content " + msg.content.to_string() + ".";
 		});
 		tabu_help("ping", {
 			tstr("text"),

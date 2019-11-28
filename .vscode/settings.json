@@ -50,6 +50,10 @@
     "iterator": "cpp",
     "map": "cpp",
     "memory_resource": "cpp",
-    "string": "cpp"
+    "string": "cpp",
+    "condition_variable": "cpp",
+    "random": "cpp",
+    "mutex": "cpp",
+    "cinttypes": "cpp"
   }
 }

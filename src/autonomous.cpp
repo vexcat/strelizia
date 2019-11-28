@@ -1,8 +1,9 @@
 #include "main.h"
-#include "okapi/api.hpp"
+#include "okapi/api/control/iterative/iterativePosPidController.hpp"
 #include "mtrs.hpp"
 #include "automation_util.hpp"
 #include "atoms.hpp"
+#include "display.hpp"
 
 static void doPID(double max, double revs, int time, bool shouldTurn, okapi::IterativePosPIDController ctrl, okapi::AbstractMotor& out) {
   //Drive forward 20 revolutions.
@@ -29,6 +30,18 @@ static void straightNormal(double max, double revs, int time) {
     1.38,
     0.017,
     0.009,
+    0,
+    okapi::TimeUtilFactory::create(),
+    std::make_unique<okapi::AverageFilter<5>>()
+  ), mtrs->all);
+  mtrs->all.moveVoltage(0);
+}
+
+static void straightWeak(double max, double revs, int time) {
+  doPID(max, revs, time, false, okapi::IterativePosPIDController(
+    0.6,
+    0.011,
+    0.004,
     0,
     okapi::TimeUtilFactory::create(),
     std::make_unique<okapi::AverageFilter<5>>()
@@ -75,7 +88,11 @@ static void turnHeavy(double max, double revs, int time) {
 }
 
 static bool amBlue = false;
-int which = 2;
+void setBlue(bool blue) { amBlue = blue; }
+std::vector<std::string> grabAutonNames() {
+  return {"nonprot", "prot"};
+}
+std::string which = "skills";
 
 //Runs a callable and copyable type, T, as a pros::Task.
 //This really should be in its own file.
@@ -114,112 +131,114 @@ namespace parallel {
   }
 }
 
-void whip() {
-  // parallel::waitForAll({
-  //   [] {
-  //     straightPID(0.6, 0.6, 800);
-  //     straightPID(0.8, -0.6, 800);
-  //   },
-  //   [] {
-  //     int lockTarget = mtrs->lift.getPosition();
-  //     mtrs->lift.controllerSet(-1);
-  //     pros::delay(1400);
-  //     mtrs->lift.moveAbsolute(lockTarget - 0.8, 100);
-  //     pros::delay(800);
-  //   }
-  // });
-  mtrs->intake.controllerSet(1);
-  mtrs->lift.controllerSet(-1);
-  pros::delay(1600);
-  mtrs->intake.controllerSet(0);
-  mtrs->lift.controllerSet(0);
+double w(double blueWeight) {
+  return amBlue ? -blueWeight : 1;
 }
 
-
 void autonomous() {
+  printf("hi\n");
   mtrs->all.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   auto startTime = pros::millis();
-  if(which == 0) {
-    goto skip;
-    parallel::waitForAll({[&]{
-      straightNormal(0.8, 2.5, 1400);
-      straightNormal(1, -2, 1300);
-    }, [&] {
-      pros::delay(200);
-      mtrs->intake.controllerSet(1);
-      pros::delay(2000);
-      mtrs->intake.controllerSet(0);
-    }});
-    turnHeavy(0.6, amBlue ? -0.68 : 0.68, 950);
-    straightHeavy(1, 2, 1200);
-    turnHeavy(0.6, amBlue ? 0.67 : -0.67, 950);
-skip:
+  auto yeet = 5;
+  mtrs->tilter.tarePosition();
+  if(which == "nonprot") {
     mtrs->intake.controllerSet(1);
-    straightHeavy(0.4, 3.5, 3000);
-    parallel::waitForAll({[&]{
-      straightHeavy(0.4, -1.64, 2000);
-    }, [&]{
-      pros::delay(800);
-      mtrs->intake.controllerSet(0);
-    }});
-    turnHeavy(0.3, amBlue ? -0.98 : 1, 2000);
-    parallel::waitForAll({[&]{
-      straightHeavy(1, 1.25, 2000);
-      mtrs->tilter.moveRelative(3.98, 200);
-      pros::delay(3400);
-      straightHeavy(1, 0.2, 800);
-    }, [&]{
-      pros::delay(900);
-      mtrs->intake.moveVoltage(-4000);
-    }});
-    //YEET
-    straightHeavy(0.6, -1, 1000);
-  } else if(which == 1) {
-    auto oldTilt = mtrs->tilter.getPosition();
-    mtrs->intake.controllerSet(1);
-    straightHeavy(0.2, 3.5, 5000);
-    parallel::waitForAll({[&]{
-      straightHeavy(0.4, -1.64, 2000);
-    }, [&]{
-      pros::delay(800);
-      mtrs->intake.controllerSet(0);
-    }});
-    turnHeavy(0.5, amBlue ? -0.98 : 0.96, 2000);
-    parallel::waitForAll({[&]{
-      straightHeavy(1, 1.1, 2000);
-      mtrs->tilter.moveRelative(3.98, 200);
-      pros::delay(3400);
-      straightHeavy(1, 0.1, 800);
-    }, [&]{
-      pros::delay(900);
-      mtrs->intake.moveVoltage(-4000);
-    }});
-    //YEET
-    parallel::waitForAll({[&]{
-      straightHeavy(0.6, -2, 2000);
-    }, [&]{
+    straightWeak(0.7, 3.73, 2300);
+    parallel::waitForAll({[]{
+      pros::delay(600);
+      mtrs->intake.controllerSet(-1);
       pros::delay(200);
       mtrs->intake.controllerSet(0);
+    }, [] {
+      turnHeavy(0.8, w(1) * 0.22, 1000);
+      straightHeavy(0.8, -3.6, 2000);
+      turnHeavy(0.8, w(1) * -0.22, 1000);
     }});
-    mtrs->tilter.moveAbsolute(oldTilt, 200);
-    turnHeavy(0.6, -1, 2000);
-  } else if(which == 2) {
-    straightNormal(0.6, -1, 1000);
-    straightNormal(0.6, 0.5, 1000);
+    mtrs->intake.controllerSet(1);
+    straightWeak(0.7, 2.6, 2000);
+    turnHeavy(0.5, w(0.95) * 1.01, 1200);
+    mtrs->intake.controllerSet(0.7);
+    parallel::waitForAll({[]{
+      pros::delay(600);
+      mtrs->intake.controllerSet(0);
+    }, []{
+      straightHeavy(0.5, w(-0.93) * 3.66, 3000);
+    }, [&]{
+      mtrs->tilter.moveAbsolute(2, 200);
+      pros::delay(3000);
+      mtrs->tilter.moveAbsolute(4.5, 200);
+      pros::delay(1300);
+      straightHeavy(1, w(-2) * 0.05, 800);
+    }, [&]{
+      pros::delay(2800);
+      mtrs->intake.moveVoltage(-4000);
+    }});
+    mtrs->intake.controllerSet(0);
+    straightHeavy(0.8, -1, 1000);
+  } else if(which == "prot") {
+    mtrs->intake.controllerSet(1);
+    straightWeak(0.7, 1.7, 2000);
+    parallel::waitForAll({[]{
+      turnNormal(1, w(1) * -0.72, 1600);
+    }, []{
+      mtrs->intake.controllerSet(-1);
+      pros::delay(300);
+      mtrs->intake.controllerSet(0);
+    }});
+    mtrs->intake.controllerSet(1);
+    straightWeak(0.7, 1.5, 2000);
+    pros::delay(500);
+    mtrs->intake.controllerSet(0);
+    turnNormal(1, w(1) * -0.28, 2000);
+    parallel::waitForAll({[&]{
+      mtrs->tilter.moveAbsolute(2, 200);
+      pros::delay(1600);
+      mtrs->tilter.moveAbsolute(4.5, 200);
+      //pros::delay(1500);
+      //straightHeavy(1, 0.1, 800);
+    }, [&]{
+      pros::delay(1400);
+      mtrs->intake.moveVoltage(-5000);
+    }, [&]{
+      straightHeavy(0.5, 1.0, 1600);
+    }});
+    straightHeavy(1, -1, 1000);
+  } else if(which == "skills") {
+    mtrs->intake.controllerSet(0.9);
+    straightWeak(0.5, 8.3, 5500);
+    pros::delay(200);
+    mtrs->intake.controllerSet(0);
+    turnNormal(0.8, 0.45, 2000);
+    straightHeavy(0.5, 2.95, 3400);
+    parallel::waitForAll({[&]{
+      mtrs->tilter.moveAbsolute(4.2, 80);
+      pros::delay(4000);
+      //straightHeavy(1, 0.1, 800);
+    }, [&]{
+      pros::delay(1600);
+      mtrs->intake.moveVoltage(-5500);
+    }});
+    straightHeavy(0.6, -1, 2000);
+    mtrs->tilter.moveAbsolute(0, 100);
+    pros::delay(2000);
   }
   printf("Finished in %lums.\n", pros::millis() - startTime);
-  auto remainderTime = 60000 + (int)startTime - (int)pros::millis();
+  auto remainderTime = 15000 + (int)startTime - (int)pros::millis();
   if(remainderTime > 0) pros::delay(remainderTime);
   printf("Time's up!\n");
   mtrs->all.moveVoltage(0);
   mtrs->intake.moveVoltage(0);
   mtrs->lift.moveVoltage(0);
-  mtrs->tilter.moveVoltage(0);
+  mtrs->tilter.moveAbsolute(0, 100);
+  pros::delay(4000);
 }
 
 void r_initialize();
 void initialize() {
+  printf("Hello from strelizia's initialize()! Revision #2\n");
   install_hawt_atom("auto", (void*)autonomous);
+  install_hawt_atom("setBlue", (void*)setBlue);
+  install_hawt_atom("grabAutonNames", (void*)grabAutonNames);
   r_initialize();
 }

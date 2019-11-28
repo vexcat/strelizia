@@ -198,21 +198,21 @@ TrialResults recordMotorMax() {
 }
 
 void init_follow_test() {
-  tabu_reply_on("simple_follower.max_test", [&]() -> json {
+  tabu_reply_on("simple_follower.max_test", []() -> json {
     auto& out = mtrs->all;
     pauseControl();
     auto data = recordMotorMax();
     returnToWall();
     resumeControl();
-    auto jarr = json::array();
+    auto jarr = json::array({});
     for(auto& entry: data.sampledPosition) {
-      jarr.push_back({
+      jarr.array_data().push_back(json::object({
         {"time", entry.time},
         {"disp", entry.disp},
         {"cVel", entry.cVel},
         {"mVel", entry.mVel},
         {"dVel", entry.dVel}
-      });
+      }));
     }
     return jarr;
   });
@@ -220,7 +220,7 @@ void init_follow_test() {
     tlabel("Moves motors at full speed for 1sec, records motor statistics."),
     treplyaction("graph(it)")
   });
-  tabu_reply_on("simple_follower.test", [&](const Message& message) -> json {
+  tabu_reply_on("simple_follower.test", [](Message message) -> json {
     auto& out = mtrs->all;
     pauseControl();
     auto data = doTest({
@@ -238,20 +238,20 @@ void init_follow_test() {
     });
     returnToWall();
     resumeControl();
-    auto jarr = json::array();
+    auto jarr = json::array({});
     for(auto& entry: data.sampledPosition) {
-      jarr.push_back({
+      jarr.array_data().push_back(json::object({
         {"time", entry.time},
         {"disp", entry.disp},
         {"cVel", entry.cVel},
         {"mVel", entry.mVel},
         {"dVel", entry.dVel}
-      });
+      }));
     }
-    return {
+    return json::object({
       {"graphable", jarr},
       {"finalVel", data.finalVelocity}
-    };
+    });
   });
   tabu_help("simple_follower.test", {
     tlabel("Motion profiling tester."),

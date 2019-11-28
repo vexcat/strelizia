@@ -3,8 +3,7 @@
 #include <string>
 #include "main.h"
 #include "json.hpp"
-
-using json = nlohmann::json;
+#include <functional>
 
 enum AddressKind {
   EVENT,
@@ -21,53 +20,53 @@ struct Message {
   std::string text();
   void send();
   void bigSend();
-  double number(const std::string& key) const {
-    return content[key].get<double>();
+  double number(const std::string& key) {
+    return content[key].get_number();
   }
-  int integer(const std::string& key) const {
-    return content[key].get<int>();
+  int integer(const std::string& key) {
+    return content[key].get_number();
   }
-  std::string string(const std::string& key) const {
-    return content[key].get<std::string>();
+  std::string string(const std::string& key) {
+    return content[key].get_string();
   }
-  bool boolean(const std::string& key) const {
-    return content[key].get<bool>();
+  bool boolean(const std::string& key) {
+    return content[key].get_bool();
   }
 };
 
-Message tabu_send(const std::string& topic, json content = json::object());
-Message tabu_send(const Message& toReply, json content = json::object());
-Message tabu_send_big(const std::string& topic, json content = json::object());
-Message tabu_send_big(const Message& toReply, json content = json::object());
+Message tabu_send(const std::string& topic, json content = json::object({}));
+Message tabu_send(Message toReply, json content = json::object({}));
+Message tabu_send_big(const std::string& topic, json content = json::object({}));
+Message tabu_send_big(Message toReply, json content = json::object({}));
 
 //Main listener adders, void(inputs)
-void tabu_on(const std::string& topic, std::function<void(const Message&)> listener, bool async = false);
-void tabu_on(const Message& repliedTo, std::function<void(const Message&, const Message&)> listener, bool async = false);
+void tabu_on(const std::string& topic, std::function<void(Message)> listener, bool async = false);
+void tabu_on(Message repliedTo, std::function<void(Message, Message)> listener, bool async = false);
 //Calls previous listener adders, and replies with a json value.
-inline void tabu_reply_on(const std::string& topic, std::function<json(const Message&)> listener) {
-  tabu_on(topic, [=](const Message& received) {
+inline void tabu_reply_on(const std::string& topic, std::function<json(Message)> listener) {
+  tabu_on(topic, [=](Message received) {
     tabu_send_big(received, listener(received));
   }, true);
 }
-inline void tabu_reply_on(const Message& repliedTo, std::function<json(const Message&, const Message&)> listener) {
-  tabu_on(repliedTo, [=](const Message& reply, const Message& original) {
+inline void tabu_reply_on(Message& repliedTo, std::function<json(Message, Message)> listener) {
+  tabu_on(repliedTo, [=](const Message reply, Message original) {
     tabu_send_big(reply, listener(reply, original));
   }, true);
 }
 //Argumentless wrappers
 inline void tabu_on(const std::string& topic, std::function<void()> listener, bool async = false) {
-  tabu_on(topic, [=](const Message&) { listener(); }, async);
+  tabu_on(topic, [=](Message) { listener(); }, async);
 }
-inline void tabu_on(const Message& repliedTo, std::function<void()> listener, bool async = false) {
-  tabu_on(repliedTo, [=](const Message&, const Message& ) { listener(); }, async);
+inline void tabu_on(Message repliedTo, std::function<void()> listener, bool async = false) {
+  tabu_on(repliedTo, [=](Message, Message ) { listener(); }, async);
 }
 inline void tabu_reply_on(const std::string& topic, std::function<json()> listener) {
-  tabu_on(topic, [=](const Message& received) {
+  tabu_on(topic, [=](Message received) {
     tabu_send_big(received, listener());
   }, true);
 }
-inline void tabu_reply_on(const Message& repliedTo, std::function<json()> listener) {
-  tabu_on(repliedTo, [=](const Message& reply, const Message& original) {
+inline void tabu_reply_on(Message repliedTo, std::function<json()> listener) {
+  tabu_on(repliedTo, [=](Message reply, Message original) {
     tabu_send_big(reply, listener());
   }, true);
 }
@@ -80,21 +79,21 @@ void tabu_say(const std::string& text);
 void tabu_help(const std::string& topic, const json& help);
 
 inline json tlabel(const std::string& text) {
-  return {{"kind", "label"}, {"text", text}};
+  return json::object({{"kind", "label"}, {"text", text}});
 }
 
 inline json tnum(const std::string& key, const std::string& label = "") {
-  return {{"kind", "number"}, {"key", key}, {"label", (label == "" ? key : label)}};
+  return json::object({{"kind", "number"}, {"key", key}, {"label", (label == "" ? key : label)}});
 }
 
 inline json tstr(const std::string& key, const std::string& label = "") {
-  return {{"kind", "string"}, {"key", key}, {"label", (label == "" ? key : label)}};
+  return json::object({{"kind", "string"}, {"key", key}, {"label", (label == "" ? key : label)}});
 }
 
 inline json tbool(const std::string& key, const std::string& label = "") {
-  return {{"kind", "bool"}, {"key", key}, {"label", (label == "" ? key : label)}};
+  return json::object({{"kind", "bool"}, {"key", key}, {"label", (label == "" ? key : label)}});
 }
 
 inline json treplyaction(const std::string& js) {
-  return {{"kind", "reply_action"}, {"do", js}};
+  return json::object({{"kind", "reply_action"}, {"do", js}});
 }

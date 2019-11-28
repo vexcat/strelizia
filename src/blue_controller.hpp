@@ -71,10 +71,10 @@ namespace bros {
     }
     //Starts listening for tabu mesesages.
     void init_listen() {
-      tabu_on(prefix + ".move", [&](const Message& msg) {
+      tabu_on(prefix + ".move", [&](Message msg) {
         axes[msg.integer("axis")] = msg.number("value");
       });
-      tabu_on(prefix + ".key", [&](const Message& msg) {
+      tabu_on(prefix + ".key", [&](Message msg) {
         buttons[msg.integer("num")] = msg.boolean("pressed");
       });
     }

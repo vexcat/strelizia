@@ -2,8 +2,6 @@
 #include "tabu.hpp"
 #include "entropy.hpp"
 
-using json = nlohmann::json;
-
 //Creates a random alphanumeric string of length len.
 std::string makeid(int len) {
   std::string ret;
@@ -17,7 +15,7 @@ std::string makeid(int len) {
 //Makes an empty message object with a new ID.
 Message::Message() {
     id = makeid(8);
-    content = json::object();
+    content = json::object({});
 }
 
 //Parses a message object from a message string.
@@ -36,7 +34,7 @@ Message::Message(const std::string& text) {
     throw std::runtime_error("No delimeter.");
   }
   //Really hacky way to parse out any \u0070's that pop up in the address
-  address = json::parse("\"" + text.substr(1, addressEnd - 1) + "\"").get<std::string>();
+  address = json::parse("\"" + text.substr(1, addressEnd - 1) + "\"").get_string();
   addressEnd++;
   auto idEnd = text.find_first_of('/', addressEnd);
   auto idLen = idEnd - addressEnd;
@@ -48,7 +46,7 @@ Message::Message(const std::string& text) {
 //Forms a string representing this message.
 //=TOPIC/ID123456/"JSON message data"
 std::string Message::text() {
-  return (addressKind == EVENT ? "=" : "@") + address + "/" + id + "/" + content.dump();
+  return (addressKind == EVENT ? "=" : "@") + address + "/" + id + "/" + content.to_string();
 }
 
 //Sends this message over USB serial.
@@ -63,22 +61,22 @@ void Message::send() {
 //Note: Sending a big message will block the caller.
 void Message::bigSend() {
   int bigPos = 0;
-  std::string dataStr = content.dump();
+  std::string dataStr = content.to_string();
   do {
-    auto nextData = dataStr.substr(bigPos, 256);
+    auto nextData = dataStr.substr(bigPos, 512);
     bigPos += nextData.size();
     Message segment;
     segment.addressKind = EVENT;
     segment.address = "file-transfer";
-    segment.content = {
+    segment.content = json::object({
       {"origId", id},
       {"origAddr", (addressKind == EVENT ? "=" : "@") + address},
       {"nextData", nextData},
       {"done", (bool)(bigPos == dataStr.size())}
-    };
+    });
     segment.send();
     bool waitingForReply = true;
-    tabu_on(segment, [&](const Message& reply, const Message& original) {
+    tabu_on(segment, [&](Message reply, Message original) {
       waitingForReply = false;
     });
     while(waitingForReply) {
@@ -124,53 +122,58 @@ class TabuLock {
 };
 
 //Storage for topic listeners.
-std::vector<std::pair<std::string, std::function<void(const Message&)>>> topicListeners;
+std::vector<std::pair<std::string, std::function<void(Message)>>> topicListeners;
+void push_topic(const std::string& topic, std::function<void(Message)> listener) {
+  TabuLock lk;
+  topicListeners.push_back({topic, listener});
+}
 //The provided function will be called when the given topic is received.
 //Setting async = true makes the function run in the background.
-void tabu_on(const std::string& topic, std::function<void(const Message&)> listener, bool async) {
+void tabu_on(const std::string& topic, std::function<void(Message)> listener, bool async) {
   if(async) {
     auto sync = listener;
-    listener = [=](const Message& notif) {
+    listener = [=](Message notif) {
       runLambdaAsync([=]() {
         sync(notif);
       });
     };
   }
-  { TabuLock lk;
-    topicListeners.push_back({topic, listener});
-  }
+  push_topic(topic, std::move(listener));
 }
 
-using ReplyListener = std::pair<Message, std::function<void(const Message&, const Message&)>>;
+using ReplyListener = std::pair<Message, std::function<void(Message, Message)>>;
 //Storage for reply listeners.
 std::vector<ReplyListener> replyListeners;
 //Orphans occur when a reply is received before a reply listener is registered.
 std::vector<Message> orphanReplies;
+void push_reply(Message msg, std::function<void(Message, Message)> listener) {
+  TabuLock lk;
+  for(int i = 0; i < orphanReplies.size(); i++) {
+    if(orphanReplies[i].address == msg.id) {
+      listener(orphanReplies[i], msg);
+      orphanReplies.erase(orphanReplies.begin() + i);
+      return;
+    }
+  }
+  replyListeners.push_back({msg, listener});
+}
 //The provided function will be called when the given message ID is replied to.
 //Setting async = true makes the function run in the background.
-void tabu_on(const Message& msg, std::function<void(const Message&, const Message&)> listener, bool async) {
+void tabu_on(Message msg, std::function<void(Message, Message)> listener, bool async) {
   if(async) {
     auto sync = listener;
-    listener = [=](const Message& reply, const Message& original) {
+    listener = [=](Message reply, Message original) {
       runLambdaAsync([=]() {
         sync(reply, original);
       });
     };
   }
-  { TabuLock lk;
-    for(int i = 0; i < orphanReplies.size(); i++) {
-      if(orphanReplies[i].address == msg.id) {
-        listener(orphanReplies[i], msg);
-        orphanReplies.erase(orphanReplies.begin() + i);
-        return;
-      }
-    }
-    replyListeners.push_back({msg, listener});
-  }
+  push_reply(msg, std::move(listener));
 }
 
-json helpRegistry = json::object();
+json helpRegistry = json::object({});
 void tabu_help(const std::string& topic, const json& help) {
+  TabuLock lk;
   helpRegistry[topic] = help;
 }
 
@@ -185,7 +188,7 @@ Message tabu_send(const std::string& topic, json content) {
 }
 
 //Constructs and sends a REPLY message object.
-Message tabu_send(const Message& message, json content) {
+Message tabu_send(Message message, json content) {
   Message msg;
   msg.address = message.id;
   msg.content = content;
@@ -205,7 +208,7 @@ Message tabu_send_big(const std::string& topic, json content) {
 }
 
 //Constructs and bigSend()s a REPLY message object.
-Message tabu_send_big(const Message& message, json content) {
+Message tabu_send_big(Message message, json content) {
   Message msg;
   msg.address = message.id;
   msg.content = content;
@@ -214,17 +217,56 @@ Message tabu_send_big(const Message& message, json content) {
   return msg;
 }
 
-bool tabu_handler_first_call = true;
-void tabu_init() {
-  //Retrieves an index of all robot tests.
-  tabu_reply_on("help", [&]() -> json {
-    return helpRegistry;
-  });
-}
+// ----- Critical Handler Code ----- //
+// Code here operates on central tabu
+// data and uses TabuLock.
 
 //Accumulating data for "file-transfer" events.
 std::unordered_map<std::string, json> ongoingTransfers;
-//Parses and handles a line of serial input, calling appropriate listeners.
+json& updateXfer(Message& msg) {
+  TabuLock lk;
+  auto origID = msg.content["origID"].get_string();
+  auto& xfer = ongoingTransfers[origID];
+  auto txt = xfer["text"].is_string() ? xfer["text"].get_string() : "";
+  xfer = json::object({
+    {"text", txt + msg.content["nextData"].get_string()},
+    {"address", msg.content["origAddr"].get_string()},
+    {"id", origID}
+  });
+  return xfer;
+}
+
+std::vector<decltype(topicListeners)::value_type> matchingTopicListeners(const Message& msg) {
+  TabuLock lk;
+  std::vector<decltype(topicListeners)::value_type> matching;
+  for(auto& listener: topicListeners) {
+    if(listener.first == msg.address) {
+      matching.push_back(listener);
+    }
+  }
+  return matching;
+}
+
+std::vector<ReplyListener> matchingReplyListeners(const Message& msg) {
+  TabuLock lk;
+  std::vector<ReplyListener> matching;
+  replyListeners.erase(std::remove_if(replyListeners.begin(), replyListeners.end(),
+  [&](const ReplyListener& parent) {
+      if(parent.first.id == msg.address) {
+        matching.push_back(parent);
+        return true;
+      }
+      return false;
+  }), replyListeners.end());
+  if(matching.empty()) orphanReplies.push_back(msg);
+  return matching;
+}
+
+// ----- Message/Line Handler -----
+
+void tabu_init();
+//Parses and handles a line of serial input, calling appropriate listeners and critical sections.
+bool tabu_handler_first_call = true;
 void tabu_handler(const std::string& line) {
   try {
     if(tabu_handler_first_call) {
@@ -233,66 +275,17 @@ void tabu_handler(const std::string& line) {
     }
     Message msg(line);
     if(msg.addressKind == EVENT) {
-      if(msg.address == "file-transfer") {
-        TabuLock lk;
-        auto origID = msg.content["origID"].get<std::string>();
-        if(ongoingTransfers.find(origID) == ongoingTransfers.end()) {
-          ongoingTransfers[origID] = {
-            {"text", ""},
-            {"address", msg.content["origAddr"].get<std::string>()},
-            {"id", origID}
-          };
-        }
-        auto& xfer = ongoingTransfers[origID];
-        xfer["text"] = xfer["text"].get<std::string>() + msg.content["nextData"].get<std::string>();
-        lk.give();
-        //Always send a reply
-        tabu_send(msg);
-        if(msg.content["done"].get<bool>()) {
-          Message constructed;
-          constructed.addressKind = xfer["address"].get<std::string>()[0] == '=' ? EVENT : REPLY;
-          constructed.address = xfer["address"].get<std::string>().substr(1);
-          constructed.id = xfer["id"].get<std::string>();
-          constructed.content = json::parse(xfer["text"].get<std::string>());
-          { TabuLock lk; ongoingTransfers.erase(ongoingTransfers.find(origID)); }
-          tabu_handler(constructed.text());
-        }
-      } else {
-        TabuLock lk;
-        std::vector<decltype(topicListeners)::value_type> matching;
-        for(auto& listener: topicListeners) {
-          if(listener.first == msg.address) {
-            matching.push_back(listener);
-          }
-        }
-        lk.give();
-        for(auto& listener: matching) {
-          try {
-            listener.second(msg);
-          } catch(...) {
-            printf(("Caught an exception in listener for " + listener.first + "\n").c_str());
-          }
+      auto matching = matchingTopicListeners(msg);
+      for(auto& listener: matching) {
+        try {
+          listener.second(msg);
+        } catch(...) {
+          printf(("Caught an exception in listener for " + listener.first + "\n").c_str());
         }
       }
     } else {
       if(msg.addressKind == REPLY) {
-        auto found = false;
-        std::vector<ReplyListener> matching;
-        TabuLock lk;
-        replyListeners.erase(std::remove_if(replyListeners.begin(), replyListeners.end(),
-        [&](const ReplyListener& parent) {
-            if(parent.first.id == msg.address) {
-              matching.push_back(parent);
-              found = true;
-              return true;
-            }
-            return false;
-        }), replyListeners.end());
-        if(matching.empty()) {
-          orphanReplies.push_back(msg);
-        }
-        lk.give();
-        for(auto& parent: matching) {
+        for(auto& parent: matchingReplyListeners(msg)) {
           try {
             parent.second(msg, parent.first);
           } catch(...) {
@@ -308,9 +301,35 @@ void tabu_handler(const std::string& line) {
   }
 }
 
+// ----- Output -----
+
 //Sends a line of text to serial output, after encoding it.
 pros::Mutex tabu_lock;
 void tabu_say(const std::string& text) {
   TabuLock lk;
   puts(text.c_str());
+}
+
+// ----- Initialization -----
+
+void tabu_init() {
+  //Retrieves an index of all robot tests.
+  tabu_reply_on("help", []() -> json {
+    return helpRegistry;
+  });
+  //Handles large file transfers
+  tabu_on("file-transfer", [](Message msg) {
+    auto &xfer = updateXfer(msg);
+    //Always send a reply
+    tabu_send(msg);
+    if(msg.content["done"].get_bool()) {
+      Message constructed;
+      constructed.addressKind = xfer["address"].get_string()[0] == '=' ? EVENT : REPLY;
+      constructed.address = xfer["address"].get_string().substr(1);
+      constructed.id = xfer["id"].get_string();
+      constructed.content = json::parse(xfer["text"].get_string());
+      { TabuLock lk; ongoingTransfers.erase(ongoingTransfers.find(constructed.id)); }
+      tabu_handler(constructed.text());
+    }
+  });
 }

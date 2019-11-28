@@ -36,8 +36,8 @@ class TestingController: public okapi::IterativePosPIDController {
 };
 
 void init_pid_test() {
-  tabu_reply_on("pid_test", [&](const Message& msg) -> json {
-    puts(msg.content.dump().c_str());
+  tabu_reply_on("pid_test", [](Message msg) -> json {
+    puts(msg.content.to_string().c_str());
     printf("hi\n");
     pauseControl();
     std::vector<PIDDataPoint> collectedData;
@@ -80,20 +80,20 @@ void init_pid_test() {
       returnToWall();
     }
     resumeControl();
-    auto jarr = json::array();
+    auto jarr = json::array({});
     for(auto& entry: collectedData) {
-      jarr.push_back({
+      jarr.array_data().push_back(json::object({
         {"time", entry.time},
         {"error", entry.error},
         {"p", entry.p},
         {"i", entry.i},
         {"d", entry.d},
         {"step", entry.step}
-      });
+      }));
     }
-    return {
+    return json::object({
       {"graphable", jarr}
-    };
+    });
   });
   tabu_help("pid_test", {
     tlabel("Do a PID test"),

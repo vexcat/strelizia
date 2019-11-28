@@ -1,6 +1,7 @@
 #pragma once
 #include "main.h"
-#include "okapi/api.hpp"
+#include "okapi/api/device/motor/abstractMotor.hpp"
+#include "okapi/impl/device/motor/motorGroup.hpp"
 #include "sensors.hpp"
 #include <stdint.h>
 #include <vector>
@@ -184,6 +185,10 @@ struct Motors {
 	Motors() {
 		tilter.setGearing(okapi::AbstractMotor::gearset::red);
 		lift.setGearing(okapi::AbstractMotor::gearset::green);
+		all.tarePosition();
+		tilter.tarePosition();
+		lift.tarePosition();
+		intake.tarePosition();
 	}
 };
 

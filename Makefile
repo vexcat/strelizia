@@ -20,7 +20,7 @@ EXTRA_CXXFLAGS=-Winvalid-pch -Wall -pedantic -Wno-psabi -Wno-unused-function -Wn
 USE_PACKAGE:=1
 
 # Set this to 1 to add additional rules to compile your project as a PROS library template
-IS_LIBRARY:=1
+IS_LIBRARY:=0
 # TODO: CHANGE THIS!
 LIBNAME:=libbest
 VERSION:=1.0.0

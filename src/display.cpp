@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "display.hpp"
 #include "atoms.hpp"
+#include "superhot_compat.hpp"
 
 //---------------------------------------
 //  Auton Selector
@@ -175,5 +176,5 @@ void uiExecutor(void*) {
 }
 
 void init_display() {
-  pros::Task(uiExecutor, NULL, "UI Executor");
+  SuperHot::registerTask(pros::Task(uiExecutor, NULL, "UI Executor"));
 }

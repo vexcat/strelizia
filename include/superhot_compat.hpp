@@ -1,7 +1,11 @@
 #include "main.h"
 
 namespace SuperHot {
-	void registerTask(pros::task_t it);
+  #ifdef SUPERHOT_ENABLED
+	pros::task_t registerTask(pros::task_t it);
+  #else
+  inline pros::task_t registerTask(pros::task_t it) { return it; }
+  #endif
 	void execImage();
 
 	struct SerInputLine {
@@ -12,7 +16,7 @@ namespace SuperHot {
   #ifdef SUPERHOT_ENABLED
 	std::string recv_line();
   #else
-  std::string recv_line() {
+  inline std::string recv_line() {
     std::string acc = "";
     int c = 0;
     while((c = getchar()) != -1  && c != '\n') {

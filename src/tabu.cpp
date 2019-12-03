@@ -1,6 +1,7 @@
 #include "main.h"
 #include "tabu.hpp"
 #include "entropy.hpp"
+#include "superhot_compat.hpp"
 
 //Creates a random alphanumeric string of length len.
 std::string makeid(int len) {
@@ -90,11 +91,11 @@ void Message::bigSend() {
 template<typename T>
 void runLambdaAsync(T copyableRunnable) {
   T* copy = new T(copyableRunnable);
-  pros::Task([](void* param) {
+  SuperHot::registerTask(pros::Task([](void* param) {
     T innerCopy = T(*((T*)param));
     delete (T*)param;
     innerCopy();
-  }, copy, "runLambdaAsync");
+  }, copy, "runLambdaAsync"));
 }
 
 class TabuLock {

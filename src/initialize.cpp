@@ -35,6 +35,7 @@ void* retrieve_hawt_atom(const std::string& name) {
  */
 void r_initialize() {
 	try {
+		printf("こわいゆめだとしても rev5\n");
 		init_random();
 		pros::delay(200);
 		//Causes memory permission error due to buggy LVGL multithreading.
@@ -54,6 +55,7 @@ void r_initialize() {
 		});
 
 		pros::Task maInput(inputTask, nullptr, "tabu-input");
+		SuperHot::registerTask(maInput);
 	} catch(const char* initError) {
 		printf("Got an init error: %s\n", initError);
 		fflush(stdout);

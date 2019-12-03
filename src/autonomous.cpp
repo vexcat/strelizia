@@ -4,6 +4,7 @@
 #include "automation_util.hpp"
 #include "atoms.hpp"
 #include "display.hpp"
+#include "superhot_compat.hpp"
 
 static void doPID(double max, double revs, int time, bool shouldTurn, okapi::IterativePosPIDController ctrl, okapi::AbstractMotor& out) {
   //Drive forward 20 revolutions.
@@ -98,11 +99,11 @@ std::string which = "skills";
 //This really should be in its own file.
 pros::Task runFuncAsync(const std::function<void()>& copyableRunnable) {
   auto copy = new std::function<void()>(copyableRunnable);
-  return pros::Task([](void* param) {
+  return SuperHot::registerTask(pros::Task([](void* param) {
     auto innerCopy = new std::function<void()>(*((std::function<void()>*)param));
     delete (std::function<void()>*)param;
     innerCopy->operator()();
-  }, copy, "runLambdaAsync");
+  }, copy, "runLambdaAsync"));
 }
 
 namespace parallel {
@@ -236,7 +237,6 @@ void autonomous() {
 
 void r_initialize();
 void initialize() {
-  printf("Hello from strelizia's initialize()! Revision #2\n");
   install_hawt_atom("auto", (void*)autonomous);
   install_hawt_atom("setBlue", (void*)setBlue);
   install_hawt_atom("grabAutonNames", (void*)grabAutonNames);

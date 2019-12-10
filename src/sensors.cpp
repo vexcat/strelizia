@@ -3,22 +3,23 @@
 #include "tabu.hpp"
 #include "mtrs.hpp"
 
-//No longer any extra sensors on robot.
+//Sensor pointers
+std::unique_ptr<pros::ADIPotentiometer> potPtr;
+
+void make_reader(const std::string& named, std::function<double()> callable) {
+  tabu_reply_on("enc_" + named, [=]() -> json {
+    printf("%f\n", callable());
+    return json(callable());
+  });
+  tabu_help("enc_" + named, json::array({ treplyaction("say(it)") }));
+}
+
 void init_sensors() {
-  tabu_reply_on("enc_base", []() -> json {
-    return mtrs->all.getPosition();
-  });
-  tabu_help("enc_base", json::array({ treplyaction("say(it)") }));
-  tabu_reply_on("enc_tilter", []() -> json {
-    return mtrs->tilter.getPosition();
-  });
-  tabu_help("enc_tilter", json::array({ treplyaction("say(it)") }));
-  tabu_reply_on("enc_lift", []() -> json {
-    return mtrs->lift.getPosition();
-  });
-  tabu_help("enc_lift", json::array({ treplyaction("say(it)") }));
-  tabu_reply_on("enc_intake", []() -> json {
-    return mtrs->intake.getPosition();
-  });
-  tabu_help("enc_intake", json::array({ treplyaction("say(it)") }));
+  potPtr = std::make_unique<pros::ADIPotentiometer>('G');
+  make_reader("base", [&]() -> double { return mtrs->all.getPosition(); });
+  make_reader("turn", [&]() -> double { return mtrs->turn.getPosition(); });
+  make_reader("tilter", [&]() -> double { return mtrs->tilter.getPosition(); });
+  make_reader("lift", [&]() -> double { return mtrs->lift.getPosition(); });
+  make_reader("intake", [&]() -> double { return mtrs->intake.getPosition(); });
+  make_reader("pot", [&]() -> double { return potPtr->get_value(); });
 }

@@ -54,8 +54,8 @@ static void turnNormal(double max, double revs, int time) {
   //Create PID controller from parameters in msg.
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
     1.3,
-    0.017,
-    0.029,
+    0.018,
+    0.021,
     0,
     okapi::TimeUtilFactory::create(),
     std::make_unique<okapi::AverageFilter<3>>()
@@ -78,9 +78,9 @@ static void straightHeavy(double max, double revs, int time) {
 static void turnHeavy(double max, double revs, int time) {
   //Create PID controller from parameters in msg.
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
-    1.2,
-    0.026,
-    0.029,
+    1.36,
+    0.014,
+    0.031,
     0,
     okapi::TimeUtilFactory::create(),
     std::make_unique<okapi::AverageFilter<3>>()
@@ -88,12 +88,12 @@ static void turnHeavy(double max, double revs, int time) {
   mtrs->all.moveVoltage(0);
 }
 
-static bool amBlue = false;
+static bool amBlue = true;
 void setBlue(bool blue) { amBlue = blue; }
 std::vector<std::string> grabAutonNames() {
   return {"nonprot", "prot"};
 }
-std::string which = "skills";
+std::string which = "nonprot";
 
 //Runs a callable and copyable type, T, as a pros::Task.
 //This really should be in its own file.
@@ -136,6 +136,10 @@ double w(double blueWeight) {
   return amBlue ? -blueWeight : 1;
 }
 
+double q(double redWeight) {
+  return !amBlue ? -redWeight : 1;
+}
+
 void autonomous() {
   printf("hi\n");
   mtrs->all.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
@@ -143,6 +147,7 @@ void autonomous() {
   auto startTime = pros::millis();
   auto yeet = 5;
   mtrs->tilter.tarePosition();
+  mtrs->lift.tarePosition();
   if(which == "nonprot") {
     mtrs->intake.controllerSet(1);
     straightWeak(0.7, 3.73, 2300);
@@ -158,7 +163,7 @@ void autonomous() {
     }});
     mtrs->intake.controllerSet(1);
     straightWeak(0.7, 2.6, 2000);
-    turnHeavy(0.5, w(0.95) * 1.01, 1200);
+    turnHeavy(0.5, w(1) * 0.94, 1200);
     mtrs->intake.controllerSet(0.7);
     parallel::waitForAll({[]{
       pros::delay(600);
@@ -207,22 +212,46 @@ void autonomous() {
     straightHeavy(1, -1, 1000);
   } else if(which == "skills") {
     mtrs->intake.controllerSet(0.9);
-    straightWeak(0.5, 8.3, 5500);
-    pros::delay(200);
-    mtrs->intake.controllerSet(0);
-    turnNormal(0.8, 0.45, 2000);
-    straightHeavy(0.5, 2.95, 3400);
     parallel::waitForAll({[&]{
-      mtrs->tilter.moveAbsolute(4.2, 80);
-      pros::delay(4000);
-      //straightHeavy(1, 0.1, 800);
+      //
+      straightHeavy(0.35, 8.1, 8000);
     }, [&]{
-      pros::delay(1600);
-      mtrs->intake.moveVoltage(-5500);
+      pros::delay(2800);
+      mtrs->intake.controllerSet(-0.9);
+      pros::delay(220);
+      mtrs->intake.controllerSet(0.9);
     }});
-    straightHeavy(0.6, -1, 2000);
+    pros::delay(200);
+    turnHeavy(0.6, 0.435, 3000);
+    parallel::waitForAll({[]{
+      straightHeavy(0.5, 3.2, 3400);
+    }, []{
+      pros::delay(800);
+      mtrs->intake.controllerSet(-1);
+      pros::delay(260);
+      mtrs->intake.controllerSet(0);
+    }});
+    parallel::waitForAll({[&]{
+      mtrs->tilter.moveAbsolute(4.6, 80);
+      pros::delay(4800);
+      //straightHeavy(1, 0.1, 800);
+    }});
+    straightHeavy(0.5, -0.91, 2000);
     mtrs->tilter.moveAbsolute(0, 100);
     pros::delay(2000);
+    turnNormal(1, 0.9, 2000);
+    mtrs->intake.controllerSet(1);
+    straightNormal(1, 2.8, 2800);
+    pros::delay(800);
+    mtrs->intake.controllerSet(-1);
+    pros::delay(280);
+    mtrs->intake.controllerSet(0);
+    mtrs->lift.moveAbsolute(-4.4, 2000);
+    turnHeavy(0.6, 0.169, 2000);
+    straightNormal(1, 0.1, 1500);
+    //Double those points like ＼(^o^)／
+    mtrs->intake.controllerSet(-1);
+    pros::delay(1000);
   }
   printf("Finished in %lums.\n", pros::millis() - startTime);
   auto remainderTime = 15000 + (int)startTime - (int)pros::millis();

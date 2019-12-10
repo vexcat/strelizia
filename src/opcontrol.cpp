@@ -72,7 +72,7 @@ void opcontrol() {
 		
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
 		if(!tilterInUse || tiltControl) {
-			mtrs->tilter.controllerSet(((mtrs->tilter.getPosition() > 2.67 && tiltControl < 0) ? 0.7 : 1.0) * tiltControl);
+			mtrs->tilter.controllerSet(((mtrs->tilter.getPosition() > 2.67 && tiltControl > 0) ? 0.7 : 1.0) * tiltControl);
 			tilterInUse = false;
 		}
 		

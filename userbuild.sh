@@ -1,5 +1,5 @@
 #!/bin/bash
 rm bin/*.o
-make -j4
-prosv5 upload
-
+if make -j4; then
+prosv5 upload . --execute /dev/rfcomm0
+fi

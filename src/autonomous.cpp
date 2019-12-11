@@ -147,7 +147,6 @@ void autonomous() {
   auto startTime = pros::millis();
   auto yeet = 5;
   mtrs->tilter.tarePosition();
-  mtrs->lift.tarePosition();
   if(which == "nonprot") {
     mtrs->intake.controllerSet(1);
     straightWeak(0.7, 3.73, 2300);
@@ -246,7 +245,7 @@ void autonomous() {
     mtrs->intake.controllerSet(-1);
     pros::delay(280);
     mtrs->intake.controllerSet(0);
-    mtrs->lift.moveAbsolute(-4.4, 2000);
+    mtrs->lift.lowTarget();
     turnHeavy(0.6, 0.169, 2000);
     straightNormal(1, 0.1, 1500);
     //Double those points like ＼(^o^)／

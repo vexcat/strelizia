@@ -19,7 +19,7 @@ void init_sensors() {
   make_reader("base", [&]() -> double { return mtrs->all.getPosition(); });
   make_reader("turn", [&]() -> double { return mtrs->turn.getPosition(); });
   make_reader("tilter", [&]() -> double { return mtrs->tilter.getPosition(); });
-  make_reader("lift", [&]() -> double { return mtrs->lift.getPosition(); });
+  make_reader("lift", [&]() -> double { return mtrs->liftRaw.getPosition(); });
   make_reader("intake", [&]() -> double { return mtrs->intake.getPosition(); });
   make_reader("pot", [&]() -> double { return potPtr->get_value(); });
 }

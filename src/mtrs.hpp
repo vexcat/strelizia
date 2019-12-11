@@ -2,6 +2,7 @@
 #include "main.h"
 #include "okapi/api/device/motor/abstractMotor.hpp"
 #include "okapi/impl/device/motor/motorGroup.hpp"
+#include "okapi/api/control/iterative/iterativePosPidController.hpp"
 #include "sensors.hpp"
 #include <stdint.h>
 #include <vector>
@@ -174,6 +175,96 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 	}
 };
 
+class CubeLift {
+	okapi::AbstractMotor& captive;
+	pros::ADIPotentiometer& captiveEnc;
+	pros::Mutex pidLock;
+	bool pidActive = false;
+	std::unique_ptr<pros::Task> pidBackgroundTask;
+	const double bottomTargetTicks = 2807;
+	const double lowTargetTicks = 1615;
+	const double highTargetTicks = 1308;
+	double currentTarget = bottomTargetTicks;
+	okapi::IterativePosPIDController ctrl;
+	void deactivatePID() {
+		pidLock.take(TIMEOUT_MAX);
+		pidActive = false;
+		pidLock.give();
+	}
+	void activatePID() {
+		pidLock.take(TIMEOUT_MAX);
+		pidActive = true;
+		pidLock.give();
+		if(pidBackgroundTask) pidBackgroundTask->notify();
+		printf("PID was activated\n");
+	}
+	void runPID() {
+		uint32_t lastTime = pros::millis();
+		while(true) {
+			pidLock.take(TIMEOUT_MAX);
+			ctrl.flipDisable(pidActive);
+			if(pidActive) {
+				ctrl.setTarget(currentTarget);
+				captive.controllerSet(ctrl.step(captiveEnc.get_value()));
+				printf("reeee\n");
+				pidLock.give();
+				pros::delay(10);
+			} else {
+				pidLock.give();
+				pros::Task::current().notify_take(false, TIMEOUT_MAX);
+				lastTime = pros::millis();
+				ctrl.reset();
+			}
+		}
+	}
+	static void invokePID(void* me) {
+		((CubeLift*)me)->runPID();
+	}
+	public:
+	bool isPIDActive() {
+		return pidActive;
+	}
+	CubeLift(okapi::AbstractMotor& icaptive, pros::ADIPotentiometer& icaptiveEnc):
+	captive(icaptive), captiveEnc(icaptiveEnc), ctrl(1, 0, 0, 0, okapi::TimeUtilFactory::create()) {}
+	void startThread() {
+		pidBackgroundTask = std::make_unique<pros::Task>(invokePID, (void*)this, "CubeLift PID");
+	}
+	void lowTarget() {
+		currentTarget = lowTargetTicks;
+		activatePID();
+	}
+	void highTarget() {
+		currentTarget = highTargetTicks;
+		activatePID();
+	}
+	void bottomTarget() {
+		currentTarget = bottomTargetTicks;
+		activatePID();
+	}
+	void toggle() {
+		if(currentTarget == lowTargetTicks) {
+			highTarget();
+			return;
+		}
+		if(currentTarget == highTargetTicks) {
+			bottomTarget();
+			return;
+		}
+		if(currentTarget == bottomTargetTicks) {
+			lowTarget();
+			return;
+		}
+	}
+	void controllerSet(double vel) {
+		deactivatePID();
+		captive.controllerSet(vel);
+	}
+	void moveVoltage(int16_t volts) {
+		deactivatePID();
+		captive.moveVoltage(volts);
+	}
+};
+
 struct Motors {
 	okapi::MotorGroup left  {  7,   9};
 	okapi::MotorGroup right {- 1, - 2}; //1
@@ -181,14 +272,18 @@ struct Motors {
 	okapi::MotorGroup turn  {  7,   9,   1,   2};
 	okapi::MotorGroup intake   { 20, -11};
 	okapi::MotorGroup tilter   {  3};
-	okapi::MotorGroup lift     {  8};
+	okapi::MotorGroup liftRaw  {  8};
+	CubeLift          lift     { liftRaw, *potPtr };
 	Motors() {
+		liftRaw.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 		tilter.setGearing(okapi::AbstractMotor::gearset::red);
-		lift.setGearing(okapi::AbstractMotor::gearset::green);
+		liftRaw.setGearing(okapi::AbstractMotor::gearset::green);
+		liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		all.tarePosition();
 		tilter.tarePosition();
-		lift.tarePosition();
+		liftRaw.tarePosition();
 		intake.tarePosition();
+		lift.startThread();
 	}
 };
 

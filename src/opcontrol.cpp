@@ -46,15 +46,12 @@ void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 	mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	uint32_t liftActivatedAt = pros::millis();
-	mtrs->lift.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 	mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
-	mtrs->lift.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	double initialTilterPos = 0;
 	double initialLiftPos = 0;
 	int automaticTiltActivationTime = -1;
 	bool tilterInUse = false;
-	bool liftInUse = false;
 	while (true) {
 		if(!opcontrolActive) {
 			opcontrolActiveAck = false;
@@ -65,9 +62,8 @@ void opcontrol() {
 		double y_ctrl  = master.get_analog(ANALOG_LEFT_Y) / 127.0;
 		double x_ctrl = master.get_analog(ANALOG_LEFT_X) / 127.0;
 		double liftControl = -master.get_analog(ANALOG_RIGHT_Y) / 127.0;
-		if(!liftInUse || liftInUse) {
+		if(!mtrs->lift.isPIDActive() || std::abs(liftControl) > 0.2) {
 			mtrs->lift.controllerSet(liftControl);
-			liftInUse = false;
 		}
 		
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
@@ -87,8 +83,7 @@ void opcontrol() {
 		}
 
 		if(master.get_digital_new_press(DIGITAL_RIGHT)) {
-      mtrs->tilter.moveAbsolute(3.98, 200);
-			tilterInUse = true;
+			mtrs->lift.toggle();
 		}
 
 		mtrs->left .controllerSet(y_ctrl + x_ctrl);

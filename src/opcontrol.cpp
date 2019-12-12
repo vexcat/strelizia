@@ -45,12 +45,9 @@ void resumeControl() {
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 	mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
-	uint32_t liftActivatedAt = pros::millis();
 	mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 	mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	double initialTilterPos = 0;
-	double initialLiftPos = 0;
-	int automaticTiltActivationTime = -1;
 	bool tilterInUse = false;
 	while (true) {
 		if(!opcontrolActive) {

@@ -6,6 +6,17 @@
 #include "atoms.hpp"
 #include "superhot_compat.hpp"
 
+//-Wpedantic workaround (gcc only)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+inline lv_color_t makeColor(uint8_t r, uint8_t g, uint8_t b) {
+  return LV_COLOR_MAKE(r, g, b);
+}
+#pragma GCC diagnostic pop
+
+#undef LV_COLOR_MAKE
+#define LV_COLOR_MAKE makeColor
+
 //---------------------------------------
 //  Auton Selector
 //---------------------------------------

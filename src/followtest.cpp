@@ -199,7 +199,6 @@ TrialResults recordMotorMax() {
 
 void init_follow_test() {
   tabu_reply_on("simple_follower.max_test", []() -> json {
-    auto& out = mtrs->all;
     pauseControl();
     auto data = recordMotorMax();
     returnToWall();
@@ -221,7 +220,6 @@ void init_follow_test() {
     treplyaction("graph(it)")
   });
   tabu_reply_on("simple_follower.test", [](Message message) -> json {
-    auto& out = mtrs->all;
     pauseControl();
     auto data = doTest({
       message.number("pos"),

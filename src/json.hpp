@@ -16,11 +16,11 @@ enum json_type {
 
 class json {
   struct impl;
-  std::unique_ptr<impl> pImpl;
   json_type kind;
+  std::unique_ptr<impl> pImpl;
+  std::string str_value;
   double dbl_value;
   bool bool_value;
-  std::string str_value;
   public:
   //These need to be defined, not declared, as default to make pImpl+unique_ptr work.
   json(json&& toBeMoved);

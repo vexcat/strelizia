@@ -51,8 +51,8 @@ json json::parse(const std::string& data) {
 
 std::vector<json>& json::array_data() { return pImpl->values; }
 const std::vector<json>& json::array_data_const() const { return pImpl->values; }
-std::vector<std::pair<std::string, json>>& json::object_data() { return pImpl->pairs; };
-const std::vector<std::pair<std::string, json>>& json::object_data_const() const { return pImpl->pairs; };
+std::vector<std::pair<std::string, json>>& json::object_data() { return pImpl->pairs; }
+const std::vector<std::pair<std::string, json>>& json::object_data_const() const { return pImpl->pairs; }
 
 json& json::set_array(std::initializer_list<json> vals) {
   kind = JARRAY;
@@ -312,6 +312,7 @@ json& json::operator=(const json& orig) {
   str_value = orig.str_value;
   dbl_value = orig.dbl_value;
   bool_value = orig.bool_value;
+  return *this;
 }
 
 json::~json() = default;
@@ -320,7 +321,7 @@ json::json(json&& bruh) = default;
 json& json::operator=(json&& bruh) = default;
 
 
-json::json(): pImpl(std::make_unique<json::impl>()) {};
+json::json(): pImpl(std::make_unique<json::impl>()) {}
 json::json(nullptr_t): pImpl(std::make_unique<json::impl>()) { set_null(); }
 json::json(double val): pImpl(std::make_unique<json::impl>()) { set_number(val); }
 json::json(int val): pImpl(std::make_unique<json::impl>()) { set_number(val); }

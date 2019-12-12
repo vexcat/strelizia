@@ -88,7 +88,7 @@ static void turnHeavy(double max, double revs, int time) {
   mtrs->all.moveVoltage(0);
 }
 
-static bool amBlue = true;
+static bool amBlue = false;
 void setBlue(bool blue) { amBlue = blue; }
 std::vector<std::string> grabAutonNames() {
   return {"nonprot", "prot"};
@@ -141,11 +141,9 @@ double q(double redWeight) {
 }
 
 void autonomous() {
-  printf("hi\n");
   mtrs->all.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   auto startTime = pros::millis();
-  auto yeet = 5;
   mtrs->tilter.tarePosition();
   if(which == "nonprot") {
     mtrs->intake.controllerSet(1);
@@ -160,15 +158,19 @@ void autonomous() {
       straightHeavy(0.8, -3.6, 2000);
       turnHeavy(0.8, w(1) * -0.22, 1000);
     }});
-    mtrs->intake.controllerSet(1);
-    straightWeak(0.7, 2.6, 2000);
-    turnHeavy(0.5, w(1) * 0.94, 1200);
+    parallel::waitForAll({[]{
+      straightWeak(0.7, 2.6, 2000);
+    }, []{
+      pros::delay(200);
+      mtrs->intake.controllerSet(1);
+    }});
+    turnHeavy(0.5, w(1) * 0.88, 1200);
     mtrs->intake.controllerSet(0.7);
     parallel::waitForAll({[]{
       pros::delay(600);
       mtrs->intake.controllerSet(0);
     }, []{
-      straightHeavy(0.5, w(-0.93) * 3.66, 3000);
+      straightHeavy(0.5, w(-0.93) * 3.70, 3000);
     }, [&]{
       mtrs->tilter.moveAbsolute(2, 200);
       pros::delay(3000);

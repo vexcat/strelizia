@@ -176,8 +176,8 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 };
 
 class CubeLift {
-	okapi::AbstractMotor& captive;
-	pros::ADIPotentiometer& captiveEnc;
+	okapi::AbstractMotor* captive;
+	pros::ADIPotentiometer* captiveEnc;
 	pros::Mutex pidLock;
 	bool pidActive = false;
 	std::unique_ptr<pros::Task> pidBackgroundTask;
@@ -205,10 +205,9 @@ class CubeLift {
 			ctrl.flipDisable(pidActive);
 			if(pidActive) {
 				ctrl.setTarget(currentTarget);
-				captive.controllerSet(ctrl.step(captiveEnc.get_value()));
-				printf("reeee\n");
+				captive->controllerSet(ctrl.step(captiveEnc->get_value()));
 				pidLock.give();
-				pros::delay(10);
+				pros::c::task_delay_until(&lastTime, 10);
 			} else {
 				pidLock.give();
 				pros::Task::current().notify_take(false, TIMEOUT_MAX);
@@ -225,7 +224,7 @@ class CubeLift {
 		return pidActive;
 	}
 	CubeLift(okapi::AbstractMotor& icaptive, pros::ADIPotentiometer& icaptiveEnc):
-	captive(icaptive), captiveEnc(icaptiveEnc), ctrl(1, 0, 0, 0, okapi::TimeUtilFactory::create()) {}
+	captive(&icaptive), captiveEnc(&icaptiveEnc), ctrl(1, 0, 0, 0, okapi::TimeUtilFactory::create()) {}
 	void startThread() {
 		pidBackgroundTask = std::make_unique<pros::Task>(invokePID, (void*)this, "CubeLift PID");
 	}
@@ -257,11 +256,11 @@ class CubeLift {
 	}
 	void controllerSet(double vel) {
 		deactivatePID();
-		captive.controllerSet(vel);
+		captive->controllerSet(vel);
 	}
 	void moveVoltage(int16_t volts) {
 		deactivatePID();
-		captive.moveVoltage(volts);
+		captive->moveVoltage(volts);
 	}
 };
 

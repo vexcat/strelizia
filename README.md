@@ -1,5 +1,5 @@
 # Strelizia
-Strelizia! The PROS program named after that robot in that anime. 8301E's code for the Tower Takeover season.
+Strelizia! The PROS program named after the robot in Darling in the Franxx. 8301E's code for the Tower Takeover season.
 
 This program makes use of a library I've written called tabu, and it makes testing your robot a breeze! It's an event-oriented way of getting data to and from the microUSB serial. Made even more useful with a wireless USB cable, or a RasPi configured to share its serial ports over bluetooth (that's what we're using, you'll see references to some /dev/rfcomm# in our scripts).
 

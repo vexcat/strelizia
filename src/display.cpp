@@ -22,7 +22,7 @@ inline lv_color_t makeColor(uint8_t r, uint8_t g, uint8_t b) {
 //---------------------------------------
 lv_obj_t* autoSelectorObj;
 lv_obj_t* buttonTemplate;
-int selectedIndex = 2;
+int selectedIndex = 4;
 std::string currentlySelected;
 std::string getSelectedAuton() {
   return currentlySelected;

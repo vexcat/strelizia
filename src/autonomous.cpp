@@ -14,12 +14,15 @@ inline MovementComponent invert(MovementComponent it) {
 struct PathDisturbance {
   MovementComponent dominant; // The side to use to measure progress during the disturbance.
   double targetLMax; // [0,1] The maximum L velocity drivable during the disturbance.
-  double targetRMax; // [0,1] The maximum R v1elocity drivable during the disturbance.
+  double targetRMax; // [0,1] The maximum R velocity drivable during the disturbance.
   double activationDistance; //Absolute distance at which the PathDisturbance goes into effect.
   double lower; //Distance the disturbance is lowering L & R to their targets
   double sustain; //Distance the disturbance is keeping L & R at their targets 
   double resume; //Distance the disturbance is bringing back L & R to their original max velocities.
   bool used = false; //Internal flag, when a disturbance is used it can't be reused.
+  void dump() {
+    printf("%d,%f,%f,%f,%f,%f,%f,%d\n", (int)dominant, targetLMax, targetRMax, activationDistance, lower, sustain, resume, (int)resume);
+  }
 };
 
 struct PIDOutput {
@@ -44,7 +47,7 @@ static void doPID(double max, double revs, int time, bool shouldTurn, okapi::Ite
     lastVel = newVel;
     pros::delay(10);
   }
-  printf("%f fV, %f fE, %f acc on straight of %f\n", out.getAvgVel(), ctrl.getError(), acc, revs);
+  //printf("%f fV, %f fE, %f acc on straight of %f\n", out.getAvgVel(), ctrl.getError(), acc, revs);
 }
 
 struct InterruptablePIDOutput: public PIDOutput {
@@ -55,11 +58,12 @@ struct InterruptablePIDOutput: public PIDOutput {
   PathDisturbance* activeDisturbance;
   std::vector<PathDisturbance> swerves;
 
-  InterruptablePIDOutput(okapi::MotorGroup& l, okapi::MotorGroup& r, std::initializer_list<PathDisturbance> iswerves, double targetPos):
+  InterruptablePIDOutput(okapi::MotorGroup& l, okapi::MotorGroup& r, std::vector<PathDisturbance> iswerves, double targetPos):
   L{&l}, lOffset{0}, R{&r}, rOffset{0}, D{L}, startTime{(int32_t)pros::millis()}, activeDisturbance{nullptr}, swerves{iswerves} {
     L->tarePosition(); R->tarePosition();
     //Negative activationDistances must be resolved with the targetPos.
     for(auto& it: swerves) {
+      it.dump();
       it.used = false;
       if(it.activationDistance < 0) {
         // on +: * * AD LOW SUS RES - - - - - -
@@ -81,15 +85,17 @@ struct InterruptablePIDOutput: public PIDOutput {
   }
   void setLPos(double rev) {
     lOffset = rev - L->getPosition();
+    //printf("lOffset was updated\n");
   }
   void setRPos(double rev) {
     rOffset = rev - R->getPosition();
+    //printf("rOffset was updated\n");
   }
   void highlightActiveDisturbance() {
     //First, check if the activeDisturbance is invalid.
     if(activeDisturbance) {
       auto &it = *activeDisturbance;
-      if(it.activationDistance + it.lower + it.sustain + it.resume < getDPos()) {
+      if(it.activationDistance + it.lower + it.sustain + it.resume < std::abs(getDPos())) {
         //All stages have passed. Time for this to go!
         activeDisturbance = nullptr;
         //Both sides should get the same position when there is no activeDisturbance.
@@ -100,11 +106,14 @@ struct InterruptablePIDOutput: public PIDOutput {
         }
       }
     }
+    //Find a new activeDisturbance
     if(!activeDisturbance) {
       for(auto& it: swerves) {
-        auto p = getDPos();
+        auto p = std::abs(getDPos());
+        //printf("DPos @ %f, L @ %f, R @ %f\n", p, getLPos(), getRPos());
         if(!it.used && p >= it.activationDistance && p <= it.activationDistance + it.lower + it.sustain + it.resume) {
           activeDisturbance = &it;
+          //printf("activeDisturbance was set\n");
           it.used = true;
           D = it.dominant == MovementComponent::L ? L : R;
         }
@@ -123,18 +132,21 @@ struct InterruptablePIDOutput: public PIDOutput {
     if(activeDisturbance) {
       //Check the current stage
       auto d = activeDisturbance->activationDistance + activeDisturbance->lower;
-      auto p = getDPos();
+      auto p = std::abs(getDPos());
       if(p < d) {
         auto delta = p - activeDisturbance->activationDistance;
         delta /= activeDisturbance->lower;
         //interpolate between (0, 1) to (1, target) with delta as x
+        //printf("Lower %f\n", delta);
         return (1 - delta) + delta * target;
       } else if(p < (d + activeDisturbance->sustain)) {
+        //printf("Sustain\n");
         return target;
       } else {
         auto delta = p - d - activeDisturbance->sustain;
         delta /= activeDisturbance->resume;
         return (1 - delta) * target + delta;
+        //printf("Resume %f\n", delta);
       }
     } else return 1;
   }
@@ -156,7 +168,7 @@ struct InterruptablePIDOutput: public PIDOutput {
   }
 };
 
-static void straightNormal(double max, double revs, int time, std::initializer_list<PathDisturbance> iswerves = {}) {
+static void straightNormal(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   InterruptablePIDOutput pidOut{ mtrs->left, mtrs->right, iswerves, revs };
   doPID(max, revs, time, false, okapi::IterativePosPIDController(
     1.38,
@@ -169,7 +181,7 @@ static void straightNormal(double max, double revs, int time, std::initializer_l
   mtrs->all.moveVoltage(0);
 }
 
-static void straightWeak(double max, double revs, int time, std::initializer_list<PathDisturbance> iswerves = {}) {
+static void straightWeak(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   InterruptablePIDOutput pidOut{ mtrs->left, mtrs->right, iswerves, revs };
   doPID(max, revs, time, false, okapi::IterativePosPIDController(
     0.6,
@@ -182,7 +194,7 @@ static void straightWeak(double max, double revs, int time, std::initializer_lis
   mtrs->all.moveVoltage(0);
 }
 
-static void turnNormal(double max, double revs, int time, std::initializer_list<PathDisturbance> iswerves = {}) {
+static void turnNormal(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   //Create PID controller from parameters in msg.
   InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
@@ -196,7 +208,7 @@ static void turnNormal(double max, double revs, int time, std::initializer_list<
   mtrs->all.moveVoltage(0);
 }
 
-static void straightHeavy(double max, double revs, int time, std::initializer_list<PathDisturbance> iswerves = {}) {
+static void straightHeavy(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   InterruptablePIDOutput pidOut{ mtrs->left, mtrs->right, iswerves, revs };
   doPID(max, revs, time, false, okapi::IterativePosPIDController(
     1.38,
@@ -209,7 +221,7 @@ static void straightHeavy(double max, double revs, int time, std::initializer_li
   mtrs->all.moveVoltage(0);
 }
 
-static void turnHeavy(double max, double revs, int time, std::initializer_list<PathDisturbance> iswerves = {}) {
+static void turnHeavy(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   //Create PID controller from parameters in msg.
   InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
@@ -223,7 +235,7 @@ static void turnHeavy(double max, double revs, int time, std::initializer_list<P
   mtrs->all.moveVoltage(0);
 }
 
-std::initializer_list<PathDisturbance> swerve(bool shouldInvert, double len = 0.5, double paddingDistance = 1) {
+std::vector<PathDisturbance> swerve(bool shouldInvert, double len = 0.4, double paddingDistance = 0.8) {
   auto d1 = MovementComponent::L; if(shouldInvert) d1 = invert(d1);
   auto d2 = invert(d1);
   return {
@@ -251,7 +263,7 @@ pros::Task runFuncAsync(const std::function<void()>& copyableRunnable) {
 }
 
 namespace parallel {
-  void bruh(std::initializer_list<std::function<void()>> owo, bool anyFinish, bool cancelRemaining) {
+  void bruh(std::vector<std::function<void()>> owo, bool anyFinish, bool cancelRemaining) {
     std::vector<pros::Task> tasks;
     for(const auto& func: owo) {
       tasks.push_back(runFuncAsync(func));
@@ -285,6 +297,7 @@ double q(double redWeight) {
 }
 
 void autonomous() {
+  which = getSelectedAuton();
   auto startTime = pros::millis();
   mtrs->tilter.tarePosition();
   mtrs->liftRaw.tarePosition();
@@ -396,11 +409,12 @@ void autonomous() {
     pros::delay(1000);
   } else if(which == "selftest") {
     straightNormal(0.5, 3.5, 3000, swerve(true));
+    straightNormal(0.5, -3.5, 3000, swerve(true));
   }
-  printf("Finished in %lums.\n", pros::millis() - startTime);
+  //printf("Finished in %lums.\n", pros::millis() - startTime);
   auto remainderTime = 15000 + (int)startTime - (int)pros::millis();
   if(remainderTime > 0) pros::delay(remainderTime);
-  printf("Time's up!\n");
+  //printf("Time's up!\n");
   mtrs->all.moveVoltage(0);
   mtrs->intake.moveVoltage(0);
   mtrs->lift.moveVoltage(0);

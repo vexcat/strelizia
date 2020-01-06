@@ -6,7 +6,7 @@ void returnToWall() {
   //Get to the wall
   mtrs->all.moveVelocity(-200);
   pros::delay(800);
-  while(std::abs(mtrs->all.getActualVelocity() / (int)mtrs->all.getGearing()) < 0.5) {
+  while(std::abs(mtrs->all.getActualVelocity() / (int)mtrs->all.getGearing()) > 0.5) {
     pros::delay(10);
   }
   pros::delay(80);

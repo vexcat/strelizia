@@ -11,6 +11,7 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+/*
 class EncoderAverage: public okapi::ContinuousRotarySensor {
 	std::vector<std::shared_ptr<okapi::ContinuousRotarySensor>> mySensors;
 	public:
@@ -174,6 +175,7 @@ class ExtraSpecialMotorWithExternalSensorsAsEncoders: public okapi::AbstractMoto
 		moveVelocity(vel * encGearing());
 	}
 };
+*/
 
 class CubeLift {
 	okapi::AbstractMotor* captive;
@@ -202,9 +204,8 @@ class CubeLift {
 		uint32_t lastTime = pros::millis();
 		while(true) {
 			pidLock.take(TIMEOUT_MAX);
-			ctrl.flipDisable(pidActive);
+			ctrl.flipDisable(!pidActive);
 			if(pidActive) {
-				ctrl.setTarget(currentTarget);
 				captive->controllerSet(ctrl.step(captiveEnc->get_value()));
 				pidLock.give();
 				pros::c::task_delay_until(&lastTime, 10);
@@ -223,21 +224,23 @@ class CubeLift {
 	bool isPIDActive() {
 		return pidActive;
 	}
-	CubeLift(okapi::AbstractMotor& icaptive, pros::ADIPotentiometer& icaptiveEnc):
-	captive(&icaptive), captiveEnc(&icaptiveEnc), ctrl(1, 0, 0, 0, okapi::TimeUtilFactory::create()) {}
+	CubeLift(okapi::AbstractMotor& icaptive, pros::ADIPotentiometer& icaptiveEnc);
 	void startThread() {
 		pidBackgroundTask = std::make_unique<pros::Task>(invokePID, (void*)this, "CubeLift PID");
 	}
 	void lowTarget() {
 		currentTarget = lowTargetTicks;
+		ctrl.setTarget(currentTarget);
 		activatePID();
 	}
 	void highTarget() {
 		currentTarget = highTargetTicks;
+		ctrl.setTarget(currentTarget);
 		activatePID();
 	}
 	void bottomTarget() {
 		currentTarget = bottomTargetTicks;
+		ctrl.setTarget(currentTarget);
 		activatePID();
 	}
 	void toggle() {
@@ -262,22 +265,33 @@ class CubeLift {
 		deactivatePID();
 		captive->moveVoltage(volts);
 	}
+	double getPosition() {
+		return captive->getPosition();
+	}
 };
 
 struct Motors {
-	okapi::MotorGroup left  {  7,   9};
-	okapi::MotorGroup right {- 1, - 2}; //1
-	okapi::MotorGroup all   {  7,   9, - 1, - 2};
-	okapi::MotorGroup turn  {  7,   9,   1,   2};
-	okapi::MotorGroup intake   { 20, -11};
-	okapi::MotorGroup tilter   {  3};
-	okapi::MotorGroup liftRaw  {  8};
+	okapi::MotorGroup left  {  1,   3};
+	okapi::MotorGroup right {- 2, - 5}; //1
+	okapi::MotorGroup rightRev {2, 5};
+	okapi::MotorGroup all   {  1,   3, - 2, - 5};
+	okapi::MotorGroup turn  {  1,   3,   2,   5};
+	okapi::MotorGroup intake   {- 7, 20};
+	okapi::MotorGroup tilter   {- 6}; // -1.2
+	okapi::MotorGroup liftRaw  {- 4}; // 2.976
 	CubeLift          lift     { liftRaw, *potPtr };
 	Motors() {
 		liftRaw.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 		tilter.setGearing(okapi::AbstractMotor::gearset::red);
 		liftRaw.setGearing(okapi::AbstractMotor::gearset::green);
 		liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+		all.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		left.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		right.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		rightRev.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
+		intake.setGearing(okapi::AbstractMotor::gearset::red);
+		intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		all.tarePosition();
 		tilter.tarePosition();
 		liftRaw.tarePosition();

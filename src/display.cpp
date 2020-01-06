@@ -161,9 +161,10 @@ void putImage() {
 int lastCompStatus = -1;
 //Responsible for running all V5 Brain Screen tasks.
 void uiExecutor(void*) {
-  pros::delay(200);
+  pros::delay(100);
   putImage();
   autoSelector();
+  pros::delay(100);
   while(true) {
     int currentStatus = pros::competition::get_status();
     if(currentStatus != lastCompStatus) {
@@ -187,5 +188,5 @@ void uiExecutor(void*) {
 }
 
 void init_display() {
-  SuperHot::registerTask(pros::Task(uiExecutor, NULL, "UI Executor"));
+  SuperHot::registerTask(pros::Task(uiExecutor, NULL, TASK_PRIORITY_MIN + 2, TASK_STACK_DEPTH_DEFAULT, "UI Executor"));
 }

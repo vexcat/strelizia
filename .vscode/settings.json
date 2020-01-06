@@ -54,6 +54,11 @@
     "condition_variable": "cpp",
     "random": "cpp",
     "mutex": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "iomanip": "cpp",
+    "hash_map": "cpp",
+    "list": "cpp",
+    "unordered_set": "cpp",
+    "set": "cpp"
   }
 }

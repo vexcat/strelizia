@@ -27,6 +27,53 @@ void* retrieve_hawt_atom(const std::string& name) {
 	return hawt_atoms[name];
 }
 
+using bytes = std::vector<unsigned char>;
+
+class CRC {
+  uint32_t size;
+  uint32_t table[256];
+  public:
+  CRC(uint32_t size, uint32_t poly);
+  uint32_t operator()(const bytes& data, uint32_t accumulator = 0);
+};
+
+inline uint32_t mask32(int size) {
+  return ((uint32_t)-1 >> (32 - size));
+}
+
+//From prosv5
+CRC::CRC(uint32_t isize, uint32_t poly): size(isize) {
+  for(uint32_t i = 0; i < 256; i++) {
+    uint32_t acc = i << (size - 8);
+    for(int j = 0; j < 8; j++) {
+      if(acc & (1 << (size - 1))) {
+        acc <<= 1;
+        acc ^= poly;
+      } else acc <<= 1;
+    }
+    table[i] = acc & mask32(size);
+  }
+}
+
+uint32_t CRC::operator()(const bytes& data, uint32_t acc) {
+  for(auto& d: data) {
+    uint8_t i = (acc >> (size-8)) ^ d;
+    acc = ((acc << 8) ^ table[i]) & mask32(size);
+  }
+  return acc;
+}
+
+CRC VEX_CRC32 = CRC(32, 0x04C11DB7);
+
+bytes fromBuffer(void* buf, int len) {
+	bytes vec;
+	vec.resize(len);
+	memcpy(vec.data(), buf, len);
+	return vec;
+}
+
+bool willRunSelector = true;
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -35,12 +82,14 @@ void* retrieve_hawt_atom(const std::string& name) {
  */
 void r_initialize() {
 	try {
-		printf("こわいゆめだとしても rev5\n");
+		//Safety
+		if(pros::competition::is_connected() && !pros::competition::is_disabled()) {
+			willRunSelector = false;
+		}
+		if(willRunSelector) {
+			init_display();
+		}
 		init_random();
-		pros::delay(200);
-		//Causes memory permission error due to buggy LVGL multithreading.
-		//Only when plugged into field.
-		//init_display();
 		init_sensors();
 		mtrs = std::make_unique<Motors>();
 		init_follow_test();

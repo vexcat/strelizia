@@ -44,10 +44,11 @@ void resumeControl() {
 //R2 - Toggle intake
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+	//mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	mtrs->tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
-	mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	double initialTilterPos = 0;
+	//mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	auto lastOuttakePress = pros::millis();
+	bool highSpeedMode = false;
 	bool tilterInUse = false;
 	while (true) {
 		if(!opcontrolActive) {
@@ -56,22 +57,39 @@ void opcontrol() {
 			continue;
 		}
 		opcontrolActiveAck = true;
-		double y_ctrl  = master.get_analog(ANALOG_LEFT_Y) / 127.0;
-		double x_ctrl = master.get_analog(ANALOG_LEFT_X) / 127.0;
-		double liftControl = -master.get_analog(ANALOG_RIGHT_Y) / 127.0;
-		if(!mtrs->lift.isPIDActive() || std::abs(liftControl) > 0.2) {
-			mtrs->lift.controllerSet(liftControl);
-		}
+		double y_ctrl  = powered(master.get_analog(ANALOG_LEFT_Y), 1.5);
+		double x_ctrl = powered(master.get_analog(ANALOG_LEFT_X), 1.5);
 		
+		double liftControl = -master.get_analog(ANALOG_RIGHT_Y) / 127.0;
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
-		if(!tilterInUse || tiltControl) {
-			mtrs->tilter.controllerSet(((mtrs->tilter.getPosition() > 2.67 && tiltControl > 0) ? 0.7 : 1.0) * tiltControl);
+		double liftSpeed = 1;
+
+		if(std::abs(liftControl) > 0.1) {
+			mtrs->lift.controllerSet(liftControl * liftSpeed);
+			//If arms are above the threshold, tilter must be > 1 (1.2 ideal)
+			if(mtrs->lift.getPosition() < -0.38 && mtrs->tilter.getPosition() < 1) {
+				mtrs->tilter.moveAbsolute(1.2, 100);
+				tilterInUse = true;
+			}
+			//If arms are below the threshold, tilter should automatically lower ( < 0.5, 0 ideal).
+			if(mtrs->lift.getPosition() > -0.38 && mtrs->tilter.getPosition() > 0.5) {
+				mtrs->tilter.moveAbsolute(0, 100);
+				tilterInUse = true;
+			}
+		} else {
+			mtrs->lift.controllerSet(0);
+		}
+
+		if(tiltControl) {
+			mtrs->tilter.controllerSet(tiltControl);
 			tilterInUse = false;
+		} else if(!tilterInUse) {
+			mtrs->tilter.controllerSet(0);
 		}
 		
 		//Tray in
 		if(master.get_digital_new_press(DIGITAL_Y)) {
-			mtrs->tilter.moveAbsolute(initialTilterPos, 200);
+			mtrs->tilter.moveAbsolute(0, 200);
 			tilterInUse = true;
 		}
 
@@ -79,14 +97,25 @@ void opcontrol() {
 			((void (*)())retrieve_hawt_atom("auto"))();
 		}
 
-		if(master.get_digital_new_press(DIGITAL_RIGHT)) {
-			mtrs->lift.toggle();
-		}
-
 		mtrs->left .controllerSet(y_ctrl + x_ctrl);
 		mtrs->right.controllerSet(y_ctrl - x_ctrl);
 
-		mtrs->intake.controllerSet(0.80 * (master.get_digital(DIGITAL_R2) - master.get_digital(DIGITAL_L2)));
+		auto intakeCtrl = 0.0;
+		if(master.get_digital_new_press(DIGITAL_L2)) {
+			if(pros::millis() - lastOuttakePress < 500) {
+				highSpeedMode = true;
+			}
+			lastOuttakePress = pros::millis();
+		}
+		if(master.get_digital(DIGITAL_L2)) {
+			intakeCtrl = highSpeedMode ? -1 : -0.4;
+		} else if(master.get_digital(DIGITAL_R2)) {
+			intakeCtrl = 1;
+		} else {
+			highSpeedMode = false;
+		}
+
+		mtrs->intake.controllerSet(intakeCtrl);
 
 		pros::delay(10);
 	}

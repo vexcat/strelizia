@@ -4,6 +4,7 @@
 #include "mtrs.hpp"
 #include "sensors.hpp"
 #include "atoms.hpp"
+#include "blackbox.hpp"
 
 double powered(int ctrl_power, double exp) {
 	if(ctrl_power == 0) return 0;
@@ -50,6 +51,7 @@ void opcontrol() {
 	auto lastOuttakePress = pros::millis();
 	bool highSpeedMode = false;
 	bool tilterInUse = false;
+	int i = 0;
 	while (true) {
 		if(!opcontrolActive) {
 			opcontrolActiveAck = false;
@@ -57,8 +59,15 @@ void opcontrol() {
 			continue;
 		}
 		opcontrolActiveAck = true;
-		double y_ctrl  = powered(master.get_analog(ANALOG_LEFT_Y), 1.5);
-		double x_ctrl = powered(master.get_analog(ANALOG_LEFT_X), 1.5);
+		auto directControl = master.get_digital(DIGITAL_UP) - master.get_digital(DIGITAL_DOWN);
+		double y_ctrl  = powered(master.get_analog(ANALOG_LEFT_Y), 1.3);
+		double x_ctrl = powered(master.get_analog(ANALOG_LEFT_X), 1.3);
+		if(directControl) {
+			mtrs->all.controllerSet(directControl);
+		} else {
+			mtrs->left .controllerSet(y_ctrl + x_ctrl);
+			mtrs->right.controllerSet(y_ctrl - x_ctrl);
+		}
 		
 		double liftControl = -master.get_analog(ANALOG_RIGHT_Y) / 127.0;
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
@@ -81,10 +90,14 @@ void opcontrol() {
 		}
 
 		if(tiltControl) {
-			mtrs->tilter.controllerSet(tiltControl);
+			mtrs->tilter.controllerSet(tiltControl * (tiltControl > 0 && mtrs->tilter.getPosition() > 1.2 ? 0.45 : 1.0));
 			tilterInUse = false;
 		} else if(!tilterInUse) {
 			mtrs->tilter.controllerSet(0);
+		}
+
+		if(bumper->get_value()) {
+			mtrs->liftRaw.tarePosition();
 		}
 		
 		//Tray in
@@ -93,12 +106,9 @@ void opcontrol() {
 			tilterInUse = true;
 		}
 
-		if(master.get_digital_new_press(DIGITAL_UP)) {
+		if(master.get_digital_new_press(DIGITAL_LEFT)) {
 			((void (*)())retrieve_hawt_atom("auto"))();
 		}
-
-		mtrs->left .controllerSet(y_ctrl + x_ctrl);
-		mtrs->right.controllerSet(y_ctrl - x_ctrl);
 
 		auto intakeCtrl = 0.0;
 		if(master.get_digital_new_press(DIGITAL_L2)) {
@@ -114,9 +124,28 @@ void opcontrol() {
 		} else {
 			highSpeedMode = false;
 		}
+		if(master.get_digital_new_press(DIGITAL_B)) {
+			mtrs->tilter.tarePosition();
+		}
+
+		if(master.get_digital_new_press(DIGITAL_A)) {
+			if(toggle_blackbox()) {
+				master.clear_line(0);
+				pros::delay(51);
+				master.set_text(0, 0, "Record Active");
+				pros::delay(51);
+			} else {
+				master.clear_line(0);
+				pros::delay(51);
+				master.set_text(0, 0, "Record Off");
+				pros::delay(51);
+			}
+		}
 
 		mtrs->intake.controllerSet(intakeCtrl);
+		//if(i % 10 == 0) printf("%f\n", imuPtr->get_rotation());
 
 		pros::delay(10);
+		i++;
 	}
 }

@@ -7,6 +7,7 @@
 #include "mtrs.hpp"
 #include "display.hpp"
 #include "superhot_compat.hpp"
+#include "blackbox.hpp"
 
 void inputTask(void*) {
 	while(true) {
@@ -94,6 +95,7 @@ void r_initialize() {
 		mtrs = std::make_unique<Motors>();
 		init_follow_test();
 		init_pid_test();
+		init_blackbox();
 
 		tabu_reply_on("ping", [](const Message& msg) -> json {
 			return "Got ping message with content " + msg.content.to_string() + ".";

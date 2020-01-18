@@ -8,7 +8,7 @@ cp bin/cougarImage.c.o cougar.o
 rm -f bin/*.o
 mv cougar.o bin/cougarImage.c.o
 #cougarImage.c is intentionally left out.
-if make IS_LIBRARY=1 EXCLUDE_SRC_FROM_LIB="$(ls ./src/*.cpp | tr '\n' ' ' | rev | cut -c 2- | rev)" -j4; then
+if make -j4 IS_LIBRARY=1 EXCLUDE_SRC_FROM_LIB="$(ls ./src/*.cpp | tr '\n' ' ' | rev | cut -c 2- | rev)"; then
 v5talk /dev/ttyACM0 transfer
 v5talk /dev/ttyACM0 upload bin/cold.package.bin strel_cold.bin --checkAlreadySent --vid=pros --address=0x03800000
 rm -f bin/hot.package.bin.gz

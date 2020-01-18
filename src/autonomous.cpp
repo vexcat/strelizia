@@ -47,7 +47,7 @@ static void doPID(double max, double revs, int time, bool shouldTurn, okapi::Ite
     lastVel = newVel;
     pros::delay(10);
   }
-  //printf("%f fV, %f fE, %f acc on straight of %f\n", out.getAvgVel(), ctrl.getError(), acc, revs);
+  printf("%f fV, %f fE, %f acc on PID of %f\n", out.getAvgVel(), ctrl.getError(), acc, revs);
 }
 
 struct InterruptablePIDOutput: public PIDOutput {
@@ -61,6 +61,7 @@ struct InterruptablePIDOutput: public PIDOutput {
   InterruptablePIDOutput(okapi::MotorGroup& l, okapi::MotorGroup& r, std::vector<PathDisturbance> iswerves, double targetPos):
   L{&l}, lOffset{0}, R{&r}, rOffset{0}, D{L}, startTime{(int32_t)pros::millis()}, activeDisturbance{nullptr}, swerves{iswerves} {
     L->tarePosition(); R->tarePosition();
+    targetPos = std::abs(targetPos);
     //Negative activationDistances must be resolved with the targetPos.
     for(auto& it: swerves) {
       it.dump();
@@ -159,12 +160,33 @@ struct InterruptablePIDOutput: public PIDOutput {
     else return 1;
   }
   double getAvgVel() override {
-    return (std::abs(L->getActualVelocity()) / getLMax() + std::abs(R->getActualVelocity()) / getRMax()) / 2;
+    return (std::abs(L->getActualVelocity()) / std::abs(getLMax()) + std::abs(R->getActualVelocity()) / std::abs(getRMax())) / 2;
   }
   void controllerSet(double vel) override {
     highlightActiveDisturbance();
     L->controllerSet(vel * getLMax());
     R->controllerSet(vel * getRMax());
+  }
+};
+
+double absIMUStart;
+class EpicTurn: public PIDOutput {
+  okapi::MotorGroup* mtrCaptive;
+  pros::Imu* imuCaptive;
+  int i = 0;
+  public:
+  EpicTurn(okapi::MotorGroup& out, pros::Imu& sensor): mtrCaptive{&out}, imuCaptive{&sensor} {}
+  double getProgress() override {
+    auto ret = imuCaptive->get_rotation() - absIMUStart;
+    i++;
+    if(i % 10 == 0) printf("%f\n", ret);
+    return ret;
+  }
+  double getAvgVel() override {
+    return mtrCaptive->getActualVelocity();
+  }
+  void controllerSet(double outVel) override {
+    mtrCaptive->controllerSet(outVel);
   }
 };
 
@@ -196,11 +218,12 @@ static void straightWeak(double max, double revs, int time, std::vector<PathDist
 
 static void turnNormal(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   //Create PID controller from parameters in msg.
-  InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
+  //InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
+  EpicTurn pidOut{ mtrs->turn, *imuPtr };
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
-    1.3,
-    0.018,
-    0.021,
+    0.007,
+    0.00005,
+    0.00032,
     0,
     okapi::TimeUtilFactory::create(),
     std::make_unique<okapi::AverageFilter<3>>()
@@ -223,7 +246,8 @@ static void straightHeavy(double max, double revs, int time, std::vector<PathDis
 
 static void turnHeavy(double max, double revs, int time, std::vector<PathDisturbance> iswerves = {}) {
   //Create PID controller from parameters in msg.
-  InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
+  EpicTurn pidOut{ mtrs->turn, *imuPtr };
+  //InterruptablePIDOutput pidOut{ mtrs->left, mtrs->rightRev, iswerves, revs };
   doPID(max, revs, time, true, okapi::IterativePosPIDController(
     1.36,
     0.014,
@@ -235,20 +259,21 @@ static void turnHeavy(double max, double revs, int time, std::vector<PathDisturb
   mtrs->all.moveVoltage(0);
 }
 
-std::vector<PathDisturbance> swerve(bool shouldInvert, double len = 0.4, double paddingDistance = 0.8) {
+std::vector<PathDisturbance> swerve(bool shouldInvert, double len = 0.4, double paddingDistance = 0.4, double ramp = 0.1) {
   auto d1 = MovementComponent::L; if(shouldInvert) d1 = invert(d1);
   auto d2 = invert(d1);
   return {
-    {d1, shouldInvert ? 0.25 : 1, shouldInvert ? 1 : 0.25, +paddingDistance, 0.1, len, 0.1, false},
-    {d2, shouldInvert ? 1 : 0.25, shouldInvert ? 0.25 : 1, -paddingDistance, 0.1, len, 0.1, false}
+    {d1, shouldInvert ? -0.5 : 1, shouldInvert ? 1 : -0.5, +paddingDistance, ramp, len, ramp, false},
+    {d2, shouldInvert ? 1 : -0.5, shouldInvert ? -0.5 : 1, -paddingDistance, ramp, len, ramp, false}
   };
 }
 
 static bool amBlue = true;
 void setBlue(bool blue) { amBlue = blue; }
 std::vector<std::string> grabAutonNames() {
-  return {"nonprot", "prot", "skills", "selftest"};
+  return {"selftest", "nonprot", "prot", "skills", "whip"};
 }
+
 std::string which = "nonprot";
 
 //Runs a callable and copyable type, T, as a pros::Task.
@@ -296,49 +321,77 @@ double q(double redWeight) {
   return !amBlue ? -redWeight : 1;
 }
 
+void waitIMUStabilize() {
+  auto startTime = pros::millis();
+  auto lastStableTime = pros::millis();
+  bool stableAck = false;
+  auto iniATT = imuPtr->get_euler();
+  while(true) {
+    auto acc = imuPtr->get_accel();
+    auto att = imuPtr->get_euler();
+    if(std::sqrt(acc.x*acc.x + acc.y*acc.y) > 0.7 || std::abs(att.pitch - iniATT.pitch) > 12 || std::abs(att.yaw - iniATT.yaw) > 12) {
+      stableAck = false;
+    } else {
+      if(!stableAck) {
+        stableAck = true;
+        lastStableTime = pros::millis();
+      } else if(pros::millis() > lastStableTime + 1000) {
+        printf("Stabilized after %dms\n", pros::millis() - startTime);
+        return;
+      }
+    }
+    if(pros::millis() > startTime + 4000) {
+      printf("Early exit after %dms\n", pros::millis() - startTime);
+      return;
+    }
+    pros::delay(10);
+  }
+}
+
+void whipout() {
+  mtrs->tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+  parallel::waitForAll({[]{
+    mtrs->intake.controllerSet(-0.6);
+    pros::delay(650);
+    mtrs->intake.controllerSet(0);
+    pros::delay(300);
+    mtrs->lift.moveVoltage(6000);
+    pros::delay(800);
+    mtrs->lift.controllerSet(0);
+  }, []{
+    mtrs->all.tarePosition();
+    mtrs->all.moveAbsolute(0 + 0.6, 80);
+    pros::delay(1400);
+    mtrs->all.moveAbsolute(0, 120);
+    pros::delay(1500);
+  }});
+  mtrs->tilter.moveAbsolute(-1.5, 100);
+  mtrs->liftRaw.moveAbsolute(0, 100);
+}
+
 void autonomous() {
   which = getSelectedAuton();
   auto startTime = pros::millis();
   mtrs->tilter.tarePosition();
   mtrs->liftRaw.tarePosition();
+  absIMUStart = imuPtr->get_rotation();
+  // Default / Test auton
+  if(which == "selftest") which = "nonprot";
   if(which == "nonprot") {
+    whipout();
     mtrs->intake.controllerSet(1);
-    straightWeak(0.7, 3.73, 2300);
-    parallel::waitForAll({[]{
-      pros::delay(600);
-      mtrs->intake.controllerSet(-1);
-      pros::delay(200);
-      mtrs->intake.controllerSet(0);
-    }, [] {
-      turnHeavy(0.8, w(1) * 0.22, 1000);
-      straightHeavy(0.8, w(-1.05) * -3.6, 2000);
-      turnHeavy(0.8, w(1) * -0.22, 1000);
+    straightNormal(0.3, 3.65, 4000, {{
+      amBlue ? MovementComponent::L : MovementComponent::R,
+      amBlue ? 1 : 0.4, amBlue ? 0.4 : 1,
+      -0.6, 0.05, 0.5, 0.05, false
     }});
-    parallel::waitForAll({[]{
-      straightWeak(0.7, 2.6, 2000);
-    }, []{
-      pros::delay(200);
-      mtrs->intake.controllerSet(1);
-    }});
-    turnHeavy(0.5, w(0.96) * 1, 1200);
-    mtrs->intake.controllerSet(0.7);
-    parallel::waitForAll({[]{
-      pros::delay(600);
-      mtrs->intake.controllerSet(0);
-    }, []{
-      straightHeavy(0.5, w(-0.87) * 3.77, 3000);
-    }, [&]{
-      mtrs->tilter.moveAbsolute(2, 200);
-      pros::delay(3000);
-      mtrs->tilter.moveAbsolute(4.5, 200);
-      pros::delay(1300);
-      straightHeavy(1, w(-2) * 0.05, 800);
-    }, [&]{
-      pros::delay(2800);
-      mtrs->intake.moveVoltage(-4000);
-    }});
+    turnNormal(0.5, w(1) * 160, 1800);
     mtrs->intake.controllerSet(0);
-    straightHeavy(0.8, -1, 1000);
+    mtrs->tilter.moveAbsolute(1.323, 95);
+    straightNormal(0.4, 3.2, 3500);
+    mtrs->tilter.moveAbsolute(3.349, 80);
+    pros::delay(1800);
+    straightNormal(0.4, -1, 1000);
   } else if(which == "prot") {
     mtrs->intake.controllerSet(1);
     straightNormal(0.6, 1.72, 2000);
@@ -368,7 +421,6 @@ void autonomous() {
   } else if(which == "skills") {
     mtrs->intake.controllerSet(0.9);
     parallel::waitForAll({[&]{
-      //
       straightHeavy(0.35, 8.1, 8000);
     }, [&]{
       pros::delay(2800);
@@ -407,19 +459,18 @@ void autonomous() {
     //Double those points like ＼(^o^)／
     mtrs->intake.controllerSet(-1);
     pros::delay(1000);
-  } else if(which == "selftest") {
-    straightNormal(0.5, 3.5, 3000, swerve(true));
-    straightNormal(0.5, -3.5, 3000, swerve(true));
+  } else if(which == "whip") {
+    whipout();
   }
-  //printf("Finished in %lums.\n", pros::millis() - startTime);
+  printf("Finished in %lums.\n", pros::millis() - startTime);
   auto remainderTime = 15000 + (int)startTime - (int)pros::millis();
-  if(remainderTime > 0) pros::delay(remainderTime);
-  //printf("Time's up!\n");
+  //if(remainderTime > 0) pros::delay(remainderTime);
+  printf("Time's up!\n");
   mtrs->all.moveVoltage(0);
   mtrs->intake.moveVoltage(0);
   mtrs->lift.moveVoltage(0);
   mtrs->tilter.moveAbsolute(0, 100);
-  pros::delay(4000);
+  //pros::delay(4000);
 }
 
 void r_initialize();

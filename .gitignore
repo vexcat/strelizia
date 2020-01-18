@@ -13,11 +13,4 @@ compile_commands.json
 temp.log
 temp.errors
 *.ini
-
-# The original .gitignore I had before upgrading
-*.gch
-.vscode/ipch/
-latex/
-html/
-build/
-success_sum
+.d/

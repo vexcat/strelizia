@@ -22,7 +22,7 @@ inline lv_color_t makeColor(uint8_t r, uint8_t g, uint8_t b) {
 //---------------------------------------
 lv_obj_t* autoSelectorObj;
 lv_obj_t* buttonTemplate;
-int selectedIndex = 4;
+int selectedIndex = 1;
 std::string currentlySelected;
 std::string getSelectedAuton() {
   return currentlySelected;
@@ -121,7 +121,7 @@ void autoSelector() {
   colorLabel = lv_label_create(colorButton, NULL);
   //TGL makes blue
   lv_btn_set_state(colorButton, LV_BTN_STATE_TGL_REL);
-  lv_label_set_text(colorLabel, "BLUE");
+  lv_label_set_text(colorLabel, "RED");
   lv_btn_set_action(colorButton, LV_BTN_ACTION_CLICK, [](lv_obj_t* obj) -> lv_res_t {
     if(lv_btn_get_state(colorButton) == LV_BTN_STATE_REL || lv_btn_get_state(colorButton) == LV_BTN_STATE_PR) {
       ((void (*)(bool))retrieve_hawt_atom("setBlue"))(false);

@@ -1,1 +1,0 @@
-/home/ungato/strelizia/include/superhot_compat.hpp

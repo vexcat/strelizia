@@ -1,9 +1,0 @@
-{
-  "default": {
-    "weight": 1
-  },
-  "auto": {
-    "weight": 100,
-    "objects": ["bin/user/autonomous.cpp.o"]
-  }
-}

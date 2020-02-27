@@ -47,7 +47,7 @@ void init_pid_test() {
       msg.number("kI"),
       msg.number("kD"),
       msg.number("kBias"),
-      okapi::TimeUtilFactory::create(),
+      okapi::TimeUtilFactory::createDefault(),
       std::make_unique<okapi::AverageFilter<5>>()
     );
     controller.setOutputLimits(msg.number("max"), -msg.number("max"));

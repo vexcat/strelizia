@@ -51,6 +51,8 @@ void opcontrol() {
 	auto lastOuttakePress = pros::millis();
 	bool highSpeedMode = false;
 	bool tilterInUse = false;
+	bool armsBeingHeld = false;
+	bool trayUnderManualControl	 = false;
 	int i = 0;
 	while (true) {
 		if(!opcontrolActive) {
@@ -68,30 +70,47 @@ void opcontrol() {
 			mtrs->left .controllerSet(y_ctrl + x_ctrl);
 			mtrs->right.controllerSet(y_ctrl - x_ctrl);
 		}
-		
+		//1.978
 		double liftControl = -master.get_analog(ANALOG_RIGHT_Y) / 127.0;
 		double tiltControl = master.get_digital(DIGITAL_R1) - master.get_digital(DIGITAL_L1);
 		double liftSpeed = 1;
 
+		//Not fail-safe.
+		if(liftControl > 0 && bumper->get_value()) liftControl = 0;
 		if(std::abs(liftControl) > 0.1) {
+			mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 			mtrs->lift.controllerSet(liftControl * liftSpeed);
-			//If arms are above the threshold, tilter must be > 1 (1.2 ideal)
-			if(mtrs->lift.getPosition() < -0.38 && mtrs->tilter.getPosition() < 1) {
-				mtrs->tilter.moveAbsolute(1.2, 100);
-				tilterInUse = true;
+			//Only when not doing skills.
+			if(!trayUnderManualControl	) {
+				//If arms are above the threshold, tilter must be > 1 (1.2 ideal)
+				if(mtrs->lift.getPosition() < -0.38 && mtrs->tilter.getPosition() < 1) {
+					mtrs->tilter.moveAbsolute(1.2, 100);
+					tilterInUse = true;
+				}
+				//If arms are below the threshold, tilter should automatically lower ( < 0.5, 0 ideal).
+				if(mtrs->lift.getPosition() > -0.38 && mtrs->tilter.getPosition() > 0.5 && !trayBumper->get_value()) {
+					mtrs->tilter.controllerSet(-1);
+					tilterInUse = true;
+				}
 			}
-			//If arms are below the threshold, tilter should automatically lower ( < 0.5, 0 ideal).
-			if(mtrs->lift.getPosition() > -0.38 && mtrs->tilter.getPosition() > 0.5) {
-				mtrs->tilter.moveAbsolute(0, 100);
-				tilterInUse = true;
-			}
-		} else {
+			armsBeingHeld = false;
+		} else if(bumper->get_value()) {
+			mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+			mtrs->liftRaw.controllerSet(0);
+			armsBeingHeld = true;
+		} else if(!armsBeingHeld) {
 			mtrs->lift.controllerSet(0);
 		}
 
+		//This line is not fail-safe if the button fails (stays stuck in pressed position).
+		if(tiltControl < 0 && trayBumper->get_value()) tiltControl = 0;
 		if(tiltControl) {
-			mtrs->tilter.controllerSet(tiltControl * (tiltControl > 0 && mtrs->tilter.getPosition() > 1.2 ? 0.45 : 1.0));
+			mtrs->tilter.controllerSet(tiltControl * (tiltControl > 0 && mtrs->tilter.getPosition() > 1.2 ? 0.35 : (tiltControl > 0 && mtrs->tilter.getPosition() > 1.6 ? 0.6 : 1)));
 			tilterInUse = false;
+			//Moving tilter forward *will* move arms.
+			armsBeingHeld = false;
+			mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+			mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 		} else if(!tilterInUse) {
 			mtrs->tilter.controllerSet(0);
 		}
@@ -101,9 +120,17 @@ void opcontrol() {
 		}
 		
 		//Tray in
-		if(master.get_digital_new_press(DIGITAL_Y)) {
-			mtrs->tilter.moveAbsolute(0, 200);
+		if(master.get_digital_new_press(DIGITAL_Y) && !trayBumper->get_value()) {
+			mtrs->tilter.controllerSet(-1);
 			tilterInUse = true;
+		}
+
+		if(trayBumper->get_value()) {
+			mtrs->tilter.tarePosition();
+			if(mtrs->tilter.getTargetVelocity() == -100) {
+				trayUnderManualControl = false;
+				tilterInUse = false;
+			}
 		}
 
 		if(master.get_digital_new_press(DIGITAL_LEFT)) {
@@ -119,13 +146,33 @@ void opcontrol() {
 		}
 		if(master.get_digital(DIGITAL_L2)) {
 			intakeCtrl = highSpeedMode ? -1 : -0.4;
+			mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		} else if(master.get_digital(DIGITAL_R2)) {
 			intakeCtrl = 1;
+			mtrs->intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		} else {
 			highSpeedMode = false;
 		}
+
 		if(master.get_digital_new_press(DIGITAL_B)) {
-			mtrs->tilter.tarePosition();
+			trayUnderManualControl	 = !trayUnderManualControl	;
+			/*
+			master.clear();
+			pros::delay(51);
+			master.set_text(0, 0, " Skills Drive  ");
+			pros::delay(51);
+			master.set_text(1, 0, trayUnderManualControl	 ? "  Mode Active  " : "   Mode Off    ");
+			pros::delay(51);
+			master.set_text(2, 0, "^^^^^^^^^^^^^^^");
+			pros::delay(51);
+			*/
+			if(trayUnderManualControl) {
+				mtrs->tilter.moveAbsolute(1, 100);
+				tilterInUse = true;
+			} else {
+				mtrs->tilter.controllerSet(-1);
+				tilterInUse = true;
+			}
 		}
 
 		if(master.get_digital_new_press(DIGITAL_A)) {

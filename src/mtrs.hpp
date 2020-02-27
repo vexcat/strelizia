@@ -292,6 +292,7 @@ struct Motors {
 		tilter.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
 		intake.setGearing(okapi::AbstractMotor::gearset::red);
 		intake.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
+		tilter.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 		all.tarePosition();
 		tilter.tarePosition();
 		liftRaw.tarePosition();

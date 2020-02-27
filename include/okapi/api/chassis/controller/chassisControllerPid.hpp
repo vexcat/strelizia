@@ -70,12 +70,12 @@ class ChassisControllerPID : public ChassisController {
    *
    * ```cpp
    * // Drive forward by spinning the motors 400 degrees
-   * chassis->moveDistance(400);
+   * chassis->moveRaw(400);
    * ```
    *
    * @param itarget distance to travel in motor degrees
    */
-  void moveDistance(double itarget) override;
+  void moveRaw(double itarget) override;
 
   /**
    * Sets the target distance for the robot to drive straight (using closed-loop control).
@@ -89,7 +89,7 @@ class ChassisControllerPID : public ChassisController {
    *
    * @param itarget distance to travel in motor degrees
    */
-  void moveDistanceAsync(double itarget) override;
+  void moveRawAsync(double itarget) override;
 
   /**
    * Turns the robot clockwise in place (using closed-loop control).
@@ -108,12 +108,12 @@ class ChassisControllerPID : public ChassisController {
    *
    * ```cpp
    * // Turn clockwise by spinning the motors 200 degrees
-   * chassis->turnAngle(200);
+   * chassis->turnRaw(200);
    * ```
    *
    * @param idegTarget angle to turn for in motor degrees
    */
-  void turnAngle(double idegTarget) override;
+  void turnRaw(double idegTarget) override;
 
   /**
    * Sets the target angle for the robot to turn clockwise in place (using closed-loop control).
@@ -127,7 +127,7 @@ class ChassisControllerPID : public ChassisController {
    *
    * @param idegTarget angle to turn for in motor degrees
    */
-  void turnAngleAsync(double idegTarget) override;
+  void turnRawAsync(double idegTarget) override;
 
   /**
    * Sets whether turns should be mirrored.
@@ -135,6 +135,13 @@ class ChassisControllerPID : public ChassisController {
    * @param ishouldMirror whether turns should be mirrored
    */
   void setTurnsMirrored(bool ishouldMirror) override;
+
+  /**
+   * Checks whether the internal controllers are currently settled.
+   *
+   * @return Whether this ChassisController is settled.
+   */
+  bool isSettled() override;
 
   /**
    * Delays until the currently executing movement completes.
@@ -201,6 +208,19 @@ class ChassisControllerPID : public ChassisController {
   void stop() override;
 
   /**
+   * Sets a new maximum velocity in RPM [0-600]. In voltage mode, the max velocity is ignored and a
+   * max voltage should be set on the underlying ChassisModel instead.
+   *
+   * @param imaxVelocity The new maximum velocity.
+   */
+  void setMaxVelocity(double imaxVelocity) override;
+
+  /**
+   * @return The maximum velocity in RPM [0-600].
+   */
+  double getMaxVelocity() const override;
+
+  /**
    * @return The internal ChassisModel.
    */
   std::shared_ptr<ChassisModel> getModel() override;
@@ -230,8 +250,23 @@ class ChassisControllerPID : public ChassisController {
   static void trampoline(void *context);
   void loop();
 
+  /**
+   * Wait for the distance setup (distancePid and anglePid) to settle.
+   *
+   * @return true if done settling; false if settling should be tried again
+   */
   bool waitForDistanceSettled();
+
+  /**
+   * Wait for the angle setup (anglePid) to settle.
+   *
+   * @return true if done settling; false if settling should be tried again
+   */
   bool waitForAngleSettled();
+
+  /**
+   * Stops all the controllers and the ChassisModel.
+   */
   void stopAfterSettled();
 
   typedef enum { distance, angle, none } modeType;

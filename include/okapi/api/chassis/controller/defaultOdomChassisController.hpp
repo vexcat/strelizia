@@ -17,8 +17,8 @@ namespace okapi {
 class DefaultOdomChassisController : public OdomChassisController {
   public:
   /**
-   * Odometry based chassis controller that moves using the V5 motor's integrated control. Spins up
-   * a task at the default priority plus 1 for odometry when constructed.
+   * Odometry based chassis controller that moves using a separately constructed chassis controller.
+   * Spins up a task at the default priority plus 1 for odometry when constructed.
    *
    * Moves the robot around in the odom frame. Instead of telling the robot to drive forward or
    * turn some amount, you instead tell it to drive to a specific point on the field or turn to
@@ -34,7 +34,7 @@ class DefaultOdomChassisController : public OdomChassisController {
    * @param ilogger The logger this instance will log to.
    */
   DefaultOdomChassisController(const TimeUtil &itimeUtil,
-                               std::unique_ptr<Odometry> iodometry,
+                               std::shared_ptr<Odometry> iodometry,
                                std::shared_ptr<ChassisController> icontroller,
                                const StateMode &imode = StateMode::FRAME_TRANSFORMATION,
                                QLength imoveThreshold = 0_mm,
@@ -88,7 +88,7 @@ class DefaultOdomChassisController : public OdomChassisController {
   /**
    * This delegates to the input ChassisController.
    */
-  void moveDistance(double itarget) override;
+  void moveRaw(double itarget) override;
 
   /**
    * This delegates to the input ChassisController.
@@ -98,7 +98,7 @@ class DefaultOdomChassisController : public OdomChassisController {
   /**
    * This delegates to the input ChassisController.
    */
-  void moveDistanceAsync(double itarget) override;
+  void moveRawAsync(double itarget) override;
 
   /**
    * This delegates to the input ChassisController.
@@ -108,7 +108,7 @@ class DefaultOdomChassisController : public OdomChassisController {
   /**
    * This delegates to the input ChassisController.
    */
-  void turnAngle(double idegTarget) override;
+  void turnRaw(double idegTarget) override;
 
   /**
    * This delegates to the input ChassisController.
@@ -118,12 +118,17 @@ class DefaultOdomChassisController : public OdomChassisController {
   /**
    * This delegates to the input ChassisController.
    */
-  void turnAngleAsync(double idegTarget) override;
+  void turnRawAsync(double idegTarget) override;
 
   /**
    * This delegates to the input ChassisController.
    */
   void setTurnsMirrored(bool ishouldMirror) override;
+
+  /**
+   * This delegates to the input ChassisController.
+   */
+  bool isSettled() override;
 
   /**
    * This delegates to the input ChassisController.
@@ -134,6 +139,16 @@ class DefaultOdomChassisController : public OdomChassisController {
    * This delegates to the input ChassisController.
    */
   void stop() override;
+
+  /**
+   * This delegates to the input ChassisController.
+   */
+  void setMaxVelocity(double imaxVelocity) override;
+
+  /**
+   * This delegates to the input ChassisController.
+   */
+  double getMaxVelocity() const override;
 
   /**
    * This delegates to the input ChassisController.
@@ -158,5 +173,7 @@ class DefaultOdomChassisController : public OdomChassisController {
   protected:
   std::shared_ptr<Logger> logger;
   std::shared_ptr<ChassisController> controller;
+
+  void waitForOdomTask();
 };
 } // namespace okapi

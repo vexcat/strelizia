@@ -135,6 +135,13 @@ class AsyncLinearMotionProfileController : public AsyncPositionController<std::s
   virtual std::string getTarget() const;
 
   /**
+   * This is overridden to return the current path.
+   *
+   * @return The most recent value of the process variable.
+   */
+  std::string getProcessValue() const override;
+
+  /**
    * Blocks the current task until the controller has settled. This controller is settled when
    * it has finished following a path. If no path is being followed, it is settled.
    */
@@ -210,12 +217,18 @@ class AsyncLinearMotionProfileController : public AsyncPositionController<std::s
   bool isDisabled() const override;
 
   /**
-   * Sets the "absolute" zero position of the controller to its current position.
-   *
    * This implementation does nothing because the API always requires the starting position to be
    * specified.
    */
   void tarePosition() override;
+
+  /**
+   * This implementation does nothing because the maximum velocity is configured using
+   * PathfinderLimits elsewhere.
+   *
+   * @param imaxVelocity Ignored.
+   */
+  void setMaxVelocity(std::int32_t imaxVelocity) override;
 
   /**
    * Starts the internal thread. This should not be called by normal users. This method is called

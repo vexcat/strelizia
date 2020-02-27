@@ -20,12 +20,16 @@ void inputTask(void*) {
 //in hot memory at runtime. Using any hot symbols at compile-time will
 //"melt" the cold section so to say, making it have to be reuploaded to keep
 //hot references working and defying the point of it. 
-std::unordered_map<std::string, void*> hawt_atoms;
+std::unordered_map<std::string, void*>* hawt_atoms;
 void install_hawt_atom(const std::string& name, void* what) {
-	hawt_atoms[name] = what;
+	(*hawt_atoms)[name] = what;
 }
 void* retrieve_hawt_atom(const std::string& name) {
-	return hawt_atoms[name];
+	return (*hawt_atoms)[name];
+}
+
+void init_atoms() {
+	hawt_atoms = new std::unordered_map<std::string, void*>;
 }
 
 using bytes = std::vector<unsigned char>;
@@ -75,6 +79,9 @@ bytes fromBuffer(void* buf, int len) {
 
 bool willRunSelector = true;
 
+extern "C" {
+	void                  vexDisplayPrintf( int32_t xpos, int32_t ypos, uint32_t bOpaque, const char *format, ... );
+};
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -108,20 +115,22 @@ void r_initialize() {
 		pros::Task maInput(inputTask, nullptr, "tabu-input");
 		SuperHot::registerTask(maInput);
 	} catch(const char* initError) {
-		printf("Got an init error: %s\n", initError);
-		fflush(stdout);
-		pros::delay(500);
-		throw;
+		vexDisplayPrintf(10, 10, 1, "You broke it >.<\n");
+		vexDisplayPrintf(10, 30, 1, "Got an init error: %s\n", initError);
+		while(true) {
+			pros::delay(500);
+		}
 	} catch(const std::exception& except) {
-		printf("Got an init error: %s\n", except.what());
-		fflush(stdout);
-		pros::delay(500);
-		throw;
+		vexDisplayPrintf(10, 10, 1, "You broke it >.<\n");
+		vexDisplayPrintf(10, 30, 1, "Got an init error: %s\n", except.what());
+		while(true) {
+			pros::delay(500);
+		}
 	} catch(...) {
-		printf("Got some init error.\n");
-		fflush(stdout);
-		pros::delay(500);
-		throw;
+		vexDisplayPrintf(10, 10, 1, "You broke it >.<\n");
+		while(true) {
+			pros::delay(500);
+		}
 	}
 }
 

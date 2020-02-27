@@ -49,6 +49,11 @@ class AsyncPosIntegratedController : public AsyncPositionController<double, doub
   double getTarget() override;
 
   /**
+   * @return The most recent value of the process variable.
+   */
+  double getProcessValue() const override;
+
+  /**
    * Returns the last error of the controller. Does not update when disabled.
    */
   double getError() const override;
@@ -105,16 +110,16 @@ class AsyncPosIntegratedController : public AsyncPositionController<double, doub
   void controllerSet(double ivalue) override;
 
   /**
-   * Sets a new maximum velocity in RPM [0-600].
-   *
-   * @param imaxVelocity the new maximum velocity
-   */
-  virtual void setMaxVelocity(std::int32_t imaxVelocity);
-
-  /**
    * Sets the "absolute" zero position of the controller to its current position.
    */
   void tarePosition() override;
+
+  /**
+   * Sets a new maximum velocity in motor RPM [0-600].
+   *
+   * @param imaxVelocity The new maximum velocity in motor RPM [0-600].
+   */
+  void setMaxVelocity(std::int32_t imaxVelocity) override;
 
   /**
    * Stops the motor mid-movement. Does not change the last set target.

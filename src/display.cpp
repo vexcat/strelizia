@@ -86,7 +86,7 @@ void removeAuton(std::string byName) {
 
 //Initializes the auton selector
 void autoSelector() {
-  ((void (*)(bool))retrieve_hawt_atom("setBlue"))(true);
+  ((void (*)(bool))retrieve_hawt_atom("setBlue"))(false);
   autoSelectorObj = lv_obj_create(lv_scr_act(), NULL);
   lv_obj_set_size(autoSelectorObj, 480, 240);
   lv_obj_set_style(autoSelectorObj, &lv_style_plain);
@@ -120,7 +120,7 @@ void autoSelector() {
   static lv_obj_t* colorLabel = NULL;
   colorLabel = lv_label_create(colorButton, NULL);
   //TGL makes blue
-  lv_btn_set_state(colorButton, LV_BTN_STATE_TGL_REL);
+  lv_btn_set_state(colorButton, LV_BTN_STATE_REL);
   lv_label_set_text(colorLabel, "RED");
   lv_btn_set_action(colorButton, LV_BTN_ACTION_CLICK, [](lv_obj_t* obj) -> lv_res_t {
     if(lv_btn_get_state(colorButton) == LV_BTN_STATE_REL || lv_btn_get_state(colorButton) == LV_BTN_STATE_PR) {

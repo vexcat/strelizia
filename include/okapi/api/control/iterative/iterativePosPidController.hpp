@@ -26,6 +26,9 @@ class IterativePosPIDController : public IterativePositionController<double, dou
     double kI{0};
     double kD{0};
     double kBias{0};
+
+    bool operator==(const Gains &rhs) const;
+    bool operator!=(const Gains &rhs) const;
   };
 
   /**
@@ -46,7 +49,7 @@ class IterativePosPIDController : public IterativePositionController<double, dou
     double ikBias,
     const TimeUtil &itimeUtil,
     std::unique_ptr<Filter> iderivativeFilter = std::make_unique<PassthroughFilter>(),
-    const std::shared_ptr<Logger> &ilogger = Logger::getDefaultLogger());
+    std::shared_ptr<Logger> ilogger = Logger::getDefaultLogger());
 
   /**
    * Position PID controller.
@@ -59,7 +62,7 @@ class IterativePosPIDController : public IterativePositionController<double, dou
     const Gains &igains,
     const TimeUtil &itimeUtil,
     std::unique_ptr<Filter> iderivativeFilter = std::make_unique<PassthroughFilter>(),
-    const std::shared_ptr<Logger> &ilogger = Logger::getDefaultLogger());
+    std::shared_ptr<Logger> ilogger = Logger::getDefaultLogger());
 
   /**
    * Do one iteration of the controller. Returns the reading in the range [-1, 1] unless the
@@ -91,6 +94,18 @@ class IterativePosPIDController : public IterativePositionController<double, dou
    * @return the last target
    */
   double getTarget() override;
+
+  /**
+   * Gets the last set target, or the default target if none was set.
+   *
+   * @return the last target
+   */
+  double getTarget() const;
+
+  /**
+   * @return The most recent value of the process variable.
+   */
+  double getProcessValue() const override;
 
   /**
    * Returns the last calculated output of the controller. Output is in the range [-1, 1]

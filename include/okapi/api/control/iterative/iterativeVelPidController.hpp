@@ -22,6 +22,9 @@ class IterativeVelPIDController : public IterativeVelocityController<double, dou
     double kD{0};
     double kF{0};
     double kSF{0};
+
+    bool operator==(const Gains &rhs) const;
+    bool operator!=(const Gains &rhs) const;
   };
 
   /**
@@ -44,7 +47,7 @@ class IterativeVelPIDController : public IterativeVelocityController<double, dou
     std::unique_ptr<VelMath> ivelMath,
     const TimeUtil &itimeUtil,
     std::unique_ptr<Filter> iderivativeFilter = std::make_unique<PassthroughFilter>(),
-    const std::shared_ptr<Logger> &ilogger = Logger::getDefaultLogger());
+    std::shared_ptr<Logger> ilogger = Logger::getDefaultLogger());
 
   /**
    * Velocity PD controller.
@@ -60,7 +63,7 @@ class IterativeVelPIDController : public IterativeVelocityController<double, dou
     std::unique_ptr<VelMath> ivelMath,
     const TimeUtil &itimeUtil,
     std::unique_ptr<Filter> iderivativeFilter = std::make_unique<PassthroughFilter>(),
-    const std::shared_ptr<Logger> &ilogger = Logger::getDefaultLogger());
+    std::shared_ptr<Logger> ilogger = Logger::getDefaultLogger());
 
   /**
    * Do one iteration of the controller. Returns the reading in the range [-1, 1] unless the
@@ -92,6 +95,18 @@ class IterativeVelPIDController : public IterativeVelocityController<double, dou
    * @return the last target
    */
   double getTarget() override;
+
+  /**
+   * Gets the last set target, or the default target if none was set.
+   *
+   * @return the last target
+   */
+  double getTarget() const;
+
+  /**
+   * @return The most recent value of the process variable.
+   */
+  double getProcessValue() const override;
 
   /**
    * Returns the last calculated output of the controller.

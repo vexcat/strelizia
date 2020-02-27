@@ -14,4 +14,6 @@ v5talk /dev/ttyACM0 upload bin/cold.package.bin strel_cold.bin --checkAlreadySen
 rm -f bin/hot.package.bin.gz
 gzip -9 -k bin/hot.package.bin
 v5talk /dev/ttyACM0 upload bin/hot.package.bin.gz slot_1.bin --vid=user --address=0x07800000 --link=strel_cold.bin --linkVID=pros --onComplete=run
+v5talk /dev/ttyACM0 transfer --to=pit
+echo Successful Compilation at $(date +%T)
 fi

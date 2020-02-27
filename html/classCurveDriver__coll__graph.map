@@ -1,7 +1,0 @@
-<map id="CurveDriver" name="CurveDriver">
-<area shape="rect" id="node2" href="$structTrial.html" title="Trial" alt="" coords="11,109,58,136"/>
-<area shape="rect" id="node4" href="$structTrialResults.html" title="TrialResults" alt="" coords="48,199,140,225"/>
-<area shape="rect" id="node3" href="$structTail.html" title="Tail" alt="" coords="13,5,56,32"/>
-<area shape="rect" id="node5" href="$classSCurve.html" title="SCurve" alt="" coords="165,199,232,225"/>
-<area shape="rect" id="node6" href="$structInfiniteSCurve.html" title="InfiniteSCurve" alt="" coords="146,109,251,136"/>
-</map>

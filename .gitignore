@@ -14,3 +14,5 @@ temp.log
 temp.errors
 *.ini
 .d/
+html/
+latex/

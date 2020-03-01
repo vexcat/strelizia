@@ -368,17 +368,25 @@ void whipout() {
   mtrs->intake.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
   parallel::waitForAll({[]{
     mtrs->intake.moveRelative(-0.15, 100);
-    pros::delay(650);
-    pros::delay(300);
+    mtrs->tilter.moveVoltage(8000);
+    pros::delay(1000);
+    mtrs->tilter.moveAbsolute(0, 50);
+    pros::delay(250);
     mtrs->lift.moveVoltage(6000);
     pros::delay(800);
     mtrs->lift.controllerSet(0);
     mtrs->intake.controllerSet(0);
   }, []{
     mtrs->all.tarePosition();
-    mtrs->all.moveAbsolute(0 + 0.5, 100);
-    pros::delay(1200);
-    mtrs->all.moveVoltage(-9500);
+    for(int i = 0; i < 100; i++) {
+      mtrs->all.moveVoltage(6000);
+      if(i >= 50) {
+        mtrs->all.moveVoltage((99 - i) * 120);
+      }
+      pros::delay(10);
+    }
+    pros::delay(200);
+    mtrs->all.moveVoltage(-6000);
     pros::delay(1200);
   }});
   mtrs->tilter.moveAbsolute(0, 100);
@@ -419,6 +427,15 @@ void trayFailSafe() {
     pros::delay(10);
   }
   mtrs->tilter.tarePosition();
+}
+
+void armFailSafe() {
+  auto endTime = pros::millis() + 3000; // 3s
+  mtrs->liftRaw.moveVoltage(3000); // 1/4 pwr
+  while(!bumper->get_value() && pros::millis() < endTime) {
+    pros::delay(10);
+  }
+  mtrs->liftRaw.tarePosition();
 }
 
 void autonomous() {
@@ -515,6 +532,7 @@ void autonomous() {
     //absIMUStart -= 270;
     //goto mouii;
     {
+    mtrs->liftRaw.moveAbsolute(-0.2, 100);
     mtrs->intake.controllerSet(1);
     //parallel::waitForAny({[]{
     //}, wagarms(1)}, true);
@@ -524,14 +542,16 @@ void autonomous() {
       });
     }, trayFailSafe});
     mtrs->liftRaw.moveAbsolute(0, 100);
+    pros::delay(200);
     turnMini(1.0, w(1) * 0, 800);
-    straightNormal(0.8, -1.7, 1200);
+    straightNormal(0.8, -1.65, 1200);
     //mtrs->intake.moveRelative(-0.2, 80);
-    turnMini(1.0, w(1) * 134, 1400);
+    turnMini(0.8, w(1) * 135, 1400);
     mtrs->intake.controllerSet(0);
     //mtrs->tilter.moveAbsolute(1.323, 95);
     straightNormal(0.6, 1.7, 1800);
     //mtrs->tilter.moveAbsolute(3.349, 80);
+    mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
     mtrs->tilter.moveAbsolute(2.8, 80);
     auto score1Start = pros::millis();
     while(mtrs->tilter.getPosition() < 1.00) {
@@ -542,24 +562,31 @@ void autonomous() {
     if(score1Delta >= 0)
       pros::delay(score1Delta);
     straightNormal(0.4, 0.2, 800);
-    straightNormal(0.30, -1, 1000);
+    straightNormal(0.30, -1.35, 1500);
     mtrs->tilter.moveAbsolute(0, 100);
-    turnNormal(1.0, 270, 2000);
+    absIMUStart = imuPtr->get_rotation() - 130;
+    turnMini(1.0, 270, 1300);
     //ram into wall
     mtrs->all.moveVoltage(-5000);
     pros::delay(500);
     while(std::abs(mtrs->all.getActualVelocity()) > 50) pros::delay(10);
-    pros::delay(600);
+    pros::delay(200);
+    mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
     }
 mouii:
     mtrs->intake.controllerSet(1);
-    straightNormal(0.5, 3.6, 4000);
+    parallel::waitForAll({[]{
+      straightNormal(0.7, 3.65, 3000);
+    }, []{
+      pros::delay(1200);
+      absIMUStart = imuPtr->get_rotation() - 270;
+    }, armFailSafe });
     mtrs->intake.moveRelative(-0.3, 100);
     pros::delay(200);
-    straightNormal(0.5, -0.41, 1100); //kizu darake
+    straightNormal(0.5, -0.46, 1100); //kizu darake
     mtrs->tilter.moveAbsolute(1.2, 100);
     mtrs->liftRaw.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
-    mtrs->liftRaw.moveAbsolute(-3.2, 80); // -3.070
+    mtrs->liftRaw.moveAbsolute(-3.0, 80); // -3.070
     pros::delay(2600);
     parallel::waitForAll({[]{
       //straightNormal(0.3, 0.1, 800);
@@ -568,7 +595,7 @@ mouii:
       pros::delay(1000);
       //straightNormal(0.3, -0.1, 800);
     }});
-    straightNormal(0.4, -0.2, 800);
+    straightNormal(0.4, -0.3, 800);
     parallel::waitForAll({[]{
       pros::delay(400);
       mtrs->intake.controllerSet(1);
@@ -576,39 +603,73 @@ mouii:
       pros::delay(600);
       mtrs->tilter.moveAbsolute(0, 100);
     }, []{
-      turnNormal(0.8, 360, 1600);
-      straightNormal(0.4, 0.4, 1000);
-      straightNormal(0.4, -0.4, 1000);
+      turnMini(0.8, 360, 1000);
+      straightNormal(0.4, 0.6, 1400);
+      //straightNormal(0.4, -0.4, 1000);
     }});
     parallel::waitForAll({[]{
       pros::delay(800);
       mtrs->intake.moveRelative(-0.4, 100);
     }, []{
-      turnNormal(1, 360 + 74, 2000);
+      turnMini(1, 360 + 83.5, 1200);
     }});
     mtrs->tilter.moveAbsolute(1.2, 100);
     mtrs->liftRaw.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     mtrs->liftRaw.moveAbsolute(-2.5, 80);
-    straightNormal(0.5, 2.5, 2000);
+    straightNormal(0.5, 2.5, 2400);
     mtrs->intake.controllerSet(-0.4);
     pros::delay(1000);
     mtrs->intake.controllerSet(1);
+    straightNormal(0.8, -0.25, 800);
     mtrs->liftRaw.moveAbsolute(0, 100);
     pros::delay(500);
     mtrs->tilter.moveAbsolute(0, 100);
-    straightNormal(0.8, -0.25, 800);
-    turnNormal(1.0, 360 + 22, 2000);
-    straightNormal(0.8, 3, 3000);
+    turnNormal(1.0, 360 + 20, 2000);
+    straightNormal(0.8, 2.9, 2500);
     straightNormal(0.8, -1.2, 800);
     mtrs->intake.moveRelative(-0.4, 100);
     mtrs->tilter.moveAbsolute(1.2, 100);
     mtrs->liftRaw.setEncoderUnits(okapi::AbstractMotor::encoderUnits::rotations);
     mtrs->liftRaw.moveAbsolute(-2.5, 80);
-    turnNormal(0.8, 360 - 47, 2000); //utsukushii kimi ga kizu darake
+    turnMini(0.8, 360 - 55, 1600); //utsukushii kimi ga kizu darake
     straightNormal(0.6, 0.55, 1400);
-    mtrs->intake.controllerSet(-0.65);
+    mtrs->intake.controllerSet(-0.55);
     pros::delay(1000);
-    //straightNormal(0.3, 0.3, 1000);
+    mtrs->intake.controllerSet(1);
+    parallel::waitForAll({[]{
+      straightNormal(0.7, -0.2, 800);
+    }, []{
+      mtrs->liftRaw.moveAbsolute(0, 100);
+      pros::delay(600);
+      mtrs->tilter.moveAbsolute(0, 100);
+    }});
+    pros::delay(500);
+    turnMini(0.8, 360 - 40, 800);
+    straightNormal(0.45, 0.6, 1000);
+    turnMini(0.8, 360 - 14, 700);
+    mtrs->liftRaw.moveAbsolute(-0.2, 100);
+    straightNormal(0.28, 5.0, 5000, {
+      w({MovementComponent::R, 1.0, 0.68, 1.2, 0.05, 0.7, 0.05, false})
+    });
+    turnMini(0.8, 360 + 35, 1000);
+    mtrs->liftRaw.moveAbsolute(0, 100);
+    mtrs->intake.moveRelative(-0.3, 100);
+    straightNormal(0.6, 1.2, 1400);
+    mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+    mtrs->intake.controllerSet(0);
+    mtrs->tilter.moveAbsolute(2.8, 90);
+    auto score2Start = pros::millis();
+    while(mtrs->tilter.getPosition() < 2.3) {
+      pros::delay(10);
+    }
+    mtrs->tilter.moveAbsolute(2.8, 38);
+    auto score2Delta = 2800 - (pros::millis() - score2Start);
+    if(score2Delta >= 0)
+      pros::delay(score2Delta);
+    straightNormal(0.25, 0.15, 800);
+    straightNormal(0.30, -0.9, 780);
+    mtrs->tilter.moveAbsolute(0, 100);
+    mtrs->liftRaw.setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
   } else if(which == "whip") {
     whipout();
   }

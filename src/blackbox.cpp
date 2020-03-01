@@ -5,7 +5,7 @@ FILE* outfile = nullptr;
 bool toggle_blackbox() {
   if(!outfile) {
     outfile = fopen(("/usd/black_box_" + std::to_string(get_random())).c_str(), "w");
-    return true;
+    return outfile;
   } else {
     fclose(outfile);
     return false;
